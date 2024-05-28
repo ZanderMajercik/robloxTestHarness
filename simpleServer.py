@@ -1,37 +1,40 @@
 import keyboard
 import time
-# from flask import Flask
+from flask import Flask
 
-# jsonString = "{\"key\": \"a\"}"
+jsonString = "{\"key\": \"a\"}"
 
-# app = Flask(__name__)
-# key = "b"
+app = Flask(__name__)
+key = "b"
 
-# @app.route("/index.json")
-# def hello_world():
-#     # TODO: restore, always return a while debugging.
-#     return "{\"key\": \"a\"}"
-#     #jsonString.replace("a", keyboard.read_key())
-
-
-from pyKey import pressKey, releaseKey, press, sendSequence, showKeys
+@app.route("/index.json")
+def returnPressedKey():
+    # TODO: restore, always return a while debugging.
+    #return "{\"key\": \"d\"}"
+    return jsonString.replace("a", keyboard.read_key())
 
 
-toPyKey = {
-    "a" : "A",
-    "s" : "S",
-    "d" : "D",
-    "f" : "F",
-    "space" : "SPACEBAR"
-}
+# Pykey library from here: https://github.com/gauthsvenkat/pyKey/tree/master
+# If we were doing pixels to actions, this could work
+# Pixels to actions sync is a problem in either case.
+# from pyKey import pressKey, releaseKey, press, sendSequence, showKeys
 
-time.sleep(4)
 
-print("Space Down")
-pressKey("SPACEBAR")
-time.sleep(1)
-releaseKey("SPACEBAR")
-print("Space UP")
+# toPyKey = {
+#     "a" : "A",
+#     "s" : "S",
+#     "d" : "D",
+#     "f" : "F",
+#     "space" : "SPACEBAR"
+# }
+
+# time.sleep(4)
+
+# print("Space Down")
+# pressKey("SPACEBAR")
+# time.sleep(1)
+# releaseKey("SPACEBAR")
+# print("Space UP")
 
 
 #while True:
