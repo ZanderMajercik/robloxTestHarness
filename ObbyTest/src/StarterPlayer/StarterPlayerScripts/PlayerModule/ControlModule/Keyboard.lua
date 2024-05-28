@@ -77,12 +77,19 @@ function Keyboard:UpdateMovement(inputState)
 end
 
 function Keyboard:UpdateJumpTest()
-	self.jumpRequested = true
-	self:UpdateJump()
+	self.isJumping = true
+	--self.jumpRequested = true
+	--self:UpdateJump()
 end
 
 function Keyboard:UpdateJump()
 	self.isJumping = self.jumpRequested
+end
+
+function Keyboard:handleMoveForward(actionName, inputState, inputObject)
+	self.forwardValue = (inputState == Enum.UserInputState.Begin) and -1 or 0
+	self:UpdateMovement(inputState)
+	return Enum.ContextActionResult.Pass
 end
 
 function Keyboard:BindContextActions()
@@ -92,9 +99,10 @@ function Keyboard:BindContextActions()
 	-- We return ContextActionResult.Pass here for legacy reasons.
 	-- Many games rely on gameProcessedEvent being false on UserInputService.InputBegan for these control actions.
 	local handleMoveForward = function(actionName, inputState, inputObject)
-		self.forwardValue = (inputState == Enum.UserInputState.Begin) and -1 or 0
-		self:UpdateMovement(inputState)
-		return Enum.ContextActionResult.Pass
+		return self:handleMoveForward(actionName, inputState, inputObject)
+		--self.forwardValue = (inputState == Enum.UserInputState.Begin) and -1 or 0
+		--self:UpdateMovement(inputState)
+		--return Enum.ContextActionResult.Pass
 	end
 
 	local handleMoveBackward = function(actionName, inputState, inputObject)

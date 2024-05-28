@@ -14,12 +14,16 @@ local function pingLocalServer(player)
 		local response = httpSrv:GetAsync(url)
 		local b, data = pcall(decodeWrapper, response)
 		if b then
-			print("data = ", data)
-			local str = tostring(data.key)
-			msgRe:FireClient(player, str)
+			--print("data = ", data)
+			--local str = tostring(data.key)
+			msgRe:FireClient(player, data)
 		else
 			print("Can't decode")
 		end
+		data = {
+			testing = true
+		}
+		httpSrv:PostAsync(url, httpSrv:JSONEncode(data), Enum.HttpContentType.ApplicationJson, false)
 	end
 
 end
