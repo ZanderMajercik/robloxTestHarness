@@ -28,6 +28,7 @@ end
 local function postObservations()
 	print("POST OBS")
 	local url = "http://localhost:5000/index.json"
+	--Collect the player centric observations.
 	local obs = {
 		testing = true
 	}
