@@ -1,6 +1,7 @@
 local rs = game:GetService("ReplicatedStorage")
 local msgRe = rs:WaitForChild("MsgReceived")
 local RunService = game:GetService("RunService")
+local CollectionService = game:GetService("CollectionService")
 
 local httpSrv = game:GetService("HttpService")
 
@@ -25,12 +26,31 @@ local function getInput()
 	end
 end
 
+local function getAABB()
+	local pMin = Vector3.new(100,100,100)
+	local pMax = Vector3.new(-100,-100,-100)
+	for i, wall in CollectionService:GetTagged("Bounds") do
+		local pos = wall.CFrame.Position
+		pMin = pMin:Min(Vector3.new(pos.X, pos.Y - wall.Size.Y * 0.5, pos.Z))
+		pMax = pMax:Max(Vector3.new(pos.X, pos.Y + wall.Size.Y * 0.5, pos.Z))
+	end
+	return { 
+		{pMin.X, pMin.Y, pMin.Z},
+		{pMax.X, pMax.Y, pMax.Z}
+	}
+end
+
 local function postObservations()
 	print("POST OBS")
 	local url = "http://localhost:5000/index.json"
+
+	wait(1) --TODO: restore
+	local AABB = getAABB()
+	local pos = firstPlayer.Position
 	--Collect the player centric observations.
 	local obs = {
-		testing = true
+		roomAABB = AABB,
+		playerPos = {pos.X, pos.Y, pos.Z}
 	}
 	httpSrv:PostAsync(url, httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
 end
@@ -41,7 +61,10 @@ local function setupLocalServer(player)
 	--This should connect to the render loop
 	--TODO: figure out how to order these.
 	RunService.Heartbeat:Connect(postObservations)
-	RunService.Heartbeat:Connect(getInput)
+	-- TODO: Restore!!!!
+	--RunService.Heartbeat:Connect(getInput)
+
+
 	--Bind the http functions to the render loop
 	-- ONLY callable from client code.
 	--RunService:BindToRenderStep("Send Observations", Enum.RenderPriority.First.Value - 1, postObservations)

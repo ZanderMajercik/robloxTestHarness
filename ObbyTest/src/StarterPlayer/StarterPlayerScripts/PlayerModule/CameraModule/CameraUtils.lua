@@ -306,4 +306,3 @@ function CameraUtils.restoreRotationType()
 end
 
 return CameraUtils
-
