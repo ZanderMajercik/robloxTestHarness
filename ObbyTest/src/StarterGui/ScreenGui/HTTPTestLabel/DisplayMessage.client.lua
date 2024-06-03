@@ -5,9 +5,6 @@ local lbl = script.Parent
 
 local player = PlayersService.LocalPlayer
 
---Move function causes walking in the given direction "until stopped"
-local moveVec = Vector3.new(0,0,0)
-
 local function displayKey(data)
 	lbl.Text = data.space
 	--Move the character
@@ -74,3 +71,11 @@ end
 
 
 msgRe.OnClientEvent:Connect(displayKey)
+
+---while true do
+---    game:GetService("RunService").RenderStepped:Wait()
+---    game:GetService("RunService").Heartbeat:Wait()
+---    if (displayKey(data)) then
+---        break
+---    end 
+---end

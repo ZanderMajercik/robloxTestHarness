@@ -3,6 +3,8 @@ local msgRe = rs:WaitForChild("MsgReceived")
 local RunService = game:GetService("RunService")
 local CollectionService = game:GetService("CollectionService")
 
+local rf = rs:WaitForChild("RemoteFunction")
+
 local httpSrv = game:GetService("HttpService")
 
 
@@ -12,18 +14,23 @@ end
 
 local firstPlayer = nil
 
+local dataLatch
+
 local function getInput()
 	print("GET INPUT")
-	local url = "http://localhost:5000/index.json"
-	local response = httpSrv:GetAsync(url)
-	local b, data =  pcall(decodeWrapper, response)
-	if b then
-		--print("data = ", data)
-		--local str = tostring(data.key)
-		msgRe:FireClient(firstPlayer, data)
-	else
-		print("Can't decode")
-	end
+    local url = "http://localhost:5000/index.json"
+    local response = httpSrv:GetAsync(url)
+    local b, data =  pcall(decodeWrapper, response)
+    if data.shouldStep == "True" then
+    	--print("data = ", data)
+    	--local str = tostring(data.key)
+    	msgRe:FireClient(firstPlayer, data)
+        return true
+    else
+    	print("Can't decode")
+    end
+    --dataLatch = data
+    return false
 end
 
 local function getAABB()
@@ -40,28 +47,48 @@ local function getAABB()
 	}
 end
 
+local function goalPosition()
+    for i, goal in CollectionService:GetTagged("Goal") do
+        return goal.CFrame.Position
+    end
+end
+
+local function lavaObservations()
+    local lavaObs = {}
+    for i, lava in CollectionService:GetTagged("KillBlock") do
+        local orientation = lava.Position
+        local size = lava.Size
+        lavaObs[i] = {orientation.X, orientation.Y, orientation.Z, size.X, size.Y, size.Z}
+    end
+    return lavaObs
+end
+
 local function postObservations()
 	print("POST OBS")
 	local url = "http://localhost:5000/index.json"
 
-	wait(1) --TODO: restore
 	local AABB = getAABB()
-	local pos = firstPlayer.Position
+	local pos = firstPlayer.Character:FindFirstChild("HumanoidRootPart").Position
+    local goalPos = goalPosition()
 	--Collect the player centric observations.
 	local obs = {
 		roomAABB = AABB,
-		playerPos = {pos.X, pos.Y, pos.Z}
+		playerPos = {pos.X, pos.Y, pos.Z},
+        goalPos = {goalPos.X, goalPos.Y, goalPos.Z},
+        lava = lavaObservations()
 	}
 	httpSrv:PostAsync(url, httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
 end
+
+rf.OnServerInvoke = getInput
+
 
 local function setupLocalServer(player)
 	firstPlayer = player
 	print("Reached Render Bind")
 	--This should connect to the render loop
 	--TODO: figure out how to order these.
-	RunService.Heartbeat:Connect(postObservations)
-	-- TODO: Restore!!!!
+	--RunService.Heartbeat:Connect(postObservations)
 	--RunService.Heartbeat:Connect(getInput)
 
 

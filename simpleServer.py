@@ -26,7 +26,8 @@ controlDict = {
 @app.route("/index.json", methods=['POST'])
 def receiveObservations():
     data = request.get_json()
-    print(data)
+    for key in data.keys():
+        print(key, ":", data[key])
     return data
 
 
@@ -35,13 +36,13 @@ def sendKeyState():
     #return "{\"key\": \"d\"}"
     for k in controlDict.keys():
         controlDict[k] = "down" if keyboard.is_pressed(k) else "up"
-    return json.dumps(controlDict)
-    keyList = ["w", "a", "s", "d", "space"]
-    for key in keyList:
-        # TODO: implement simultaneous key presses.
-        if keyboard.is_pressed(key):
-            return jsonString.replace("a", key)
-    return jsonString.replace("a", "nokey")
+    shouldStep = "False"
+    for k in controlDict.keys():
+        if controlDict[k] == "down":
+            shouldStep = "True"
+    sendDict = controlDict.copy()
+    sendDict["shouldStep"] = shouldStep
+    return json.dumps(sendDict)
 
 
     #jsonString = jsonString
