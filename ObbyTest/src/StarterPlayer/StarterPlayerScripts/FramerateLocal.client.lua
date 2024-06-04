@@ -4,22 +4,21 @@ local rf = rs:WaitForChild("RemoteFunction")
 
 --settings().Studio.ScriptTimeoutLength = -1
 --settings().Studio.ScriptTimeoutLength = -1
--- TODO: restore
-task.wait(5)
-local success = false
+--local success = false
 function getAction()
-    success = false
+    rf:InvokeServer()
+    --success = false
 	--wait(1)
 	--print("Working?")
     --rf:InvokeServer()
     --print("Waiting On server")
 
     --task.spawn(function()
-    repeat 
-        game:GetService("RunService").RenderStepped:Wait()
-        game:GetService("RunService").Heartbeat:Wait()
-        success = rf:InvokeServer()
-    until success
+    -- repeat 
+    --     game:GetService("RunService").RenderStepped:Wait()
+    --     game:GetService("RunService").Heartbeat:Wait()
+    --     success = rf:InvokeServer()
+    -- until success
     --end)
 
 	--repeat until success 

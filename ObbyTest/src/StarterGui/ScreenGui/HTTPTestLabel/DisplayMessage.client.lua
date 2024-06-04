@@ -6,7 +6,7 @@ local lbl = script.Parent
 local player = PlayersService.LocalPlayer
 
 local function displayKey(data)
-	lbl.Text = data.space
+	lbl.Text = "stuff" --data.space
 	--Move the character
 	--TODO: scope this out based on what key came in.
 	local ctrlModule = require(PlayersService.LocalPlayer:WaitForChild("PlayerScripts").PlayerModule:WaitForChild("ControlModule"))
@@ -15,29 +15,50 @@ local function displayKey(data)
 	if ctrlModule then
 		print(require(PlayersService.LocalPlayer:WaitForChild("PlayerScripts").PlayerModule:WaitForChild("ControlModule")))
 		print(keyboard)
+		print("ACTIONS")
 		print(data)
 		local moveVal = 1
 
-		--Camera Relative Motion
 
-		-- Forward motion
-		local inputState = (data.w == "up") and Enum.UserInputState.End or Enum.UserInputState.Begin
+		-- actionJson = {
+		-- 	"moveAmount" : 0,
+		-- 	"moveAngle" : 0,
+		-- 	"jump" : 0
+		-- }
+		
+		-- Translate the move angle to be forward relative.
+		local moveAngle = (data.moveAngle + 4) % 8
+
+		--Non-camera Relative Motion
+		local forward = data.moveAngle == 0 or data.moveAngle == 1 or data.moveAngle == 7
+		local backward = data.moveAngle > 2 and data.moveAngle < 6
+		local left = data.moveAngle > 4
+		local right = data.moveAngle > 0 and data.moveAngle < 4
+
+		-- Account for no move action
+		forward = forward and data.moveAmount > 0
+		backward = backward and data.moveAmount > 0
+		left = left and data.moveAmount > 0
+		right = right and data.moveAmount > 0
+
+		-- -- Forward motion
+		local inputState = (forward) and Enum.UserInputState.End or Enum.UserInputState.Begin
 		ctrlModule.activeController.forwardValue = (inputState == Enum.UserInputState.Begin) and -1 or 0
 
-		-- Backward motion
-		inputState = (data.s == "up") and Enum.UserInputState.End or Enum.UserInputState.Begin
+		-- -- Backward motion
+		inputState = (backward) and Enum.UserInputState.End or Enum.UserInputState.Begin
 		ctrlModule.activeController.backwardValue = (inputState == Enum.UserInputState.Begin) and 1 or 0
 
 		-- Left motion
-		inputState = (data.a == "up") and Enum.UserInputState.End or Enum.UserInputState.Begin
+		inputState = (left) and Enum.UserInputState.End or Enum.UserInputState.Begin
 		ctrlModule.activeController.leftValue = (inputState == Enum.UserInputState.Begin) and -1 or 0
 
 		-- Right motion
-		inputState = (data.d == "up") and Enum.UserInputState.End or Enum.UserInputState.Begin
+		inputState = (right) and Enum.UserInputState.End or Enum.UserInputState.Begin
 		ctrlModule.activeController.rightValue = (inputState == Enum.UserInputState.Begin) and 1 or 0
 
 		-- Jump
-		inputState = (data.space == "up") and Enum.UserInputState.End or Enum.UserInputState.Begin
+		inputState = (data.jump == 0) and Enum.UserInputState.End or Enum.UserInputState.Begin
 		ctrlModule.activeController.jumpRequested = ctrlModule.activeController.jumpEnabled and (inputState == Enum.UserInputState.Begin)
 
 		ctrlModule.activeController:UpdateMovement(inputState)
