@@ -1033,11 +1033,13 @@ function ClickToMove:OnRenderStepped(dt)
 			end
 		else
 			self.moveVector = self.keyboardMoveVector
-			self.moveVectorIsCameraRelative = true
+			-- TODO: restore
+			self.moveVectorIsCameraRelative = false --true
 		end
 	else
 		self.moveVector = self.keyboardMoveVector
-		self.moveVectorIsCameraRelative = true
+		-- TODO: restore
+		self.moveVectorIsCameraRelative = false --true
 	end
 
 	-- Handle Keyboard's jump

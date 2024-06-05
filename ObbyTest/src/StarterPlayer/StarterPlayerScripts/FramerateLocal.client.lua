@@ -15,11 +15,11 @@ function getAction()
 
     --task.spawn(function()
     -- repeat 
-    --     game:GetService("RunService").RenderStepped:Wait()
     --     game:GetService("RunService").Heartbeat:Wait()
     --     success = rf:InvokeServer()
     -- until success
     --end)
+    --game:GetService("RunService").RenderStepped:Wait()
 
 	--repeat until success 
     --t0 + 1/TARGET_FRAMERATE < tick()

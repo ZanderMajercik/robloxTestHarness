@@ -17,7 +17,7 @@ local firstPlayer = nil
 local dataLatch
 
 local function getInput()
-	print("GET INPUT")
+	--print("GET INPUT")
     local url = "http://localhost:5000/index.json"
     local response = httpSrv:GetAsync(url)
     local b, data =  pcall(decodeWrapper, response)
@@ -83,7 +83,7 @@ local function lavaObservations()
 end
 
 local function postObservations()
-	print("POST OBS")
+	--print("POST OBS")
 	local url = "http://localhost:5000/index.json"
 
 	local AABB = getAABB()

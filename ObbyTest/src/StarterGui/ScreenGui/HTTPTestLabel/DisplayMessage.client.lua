@@ -27,19 +27,19 @@ local function displayKey(data)
 		-- }
 		
 		-- Translate the move angle to be forward relative.
-		local moveAngle = (data.moveAngle + 4) % 8
+		local moveAngle = data.moveAngle
 
 		--Non-camera Relative Motion
-		local forward = data.moveAngle == 0 or data.moveAngle == 1 or data.moveAngle == 7
-		local backward = data.moveAngle > 2 and data.moveAngle < 6
-		local left = data.moveAngle > 4
-		local right = data.moveAngle > 0 and data.moveAngle < 4
+		local forward = moveAngle == 0 or moveAngle == 1 or moveAngle == 7
+		local backward = moveAngle > 2 and moveAngle < 6
+		local left = moveAngle > 4
+		local right = moveAngle > 0 and moveAngle < 4
 
 		-- Account for no move action
-		forward = forward and data.moveAmount > 0
-		backward = backward and data.moveAmount > 0
-		left = left and data.moveAmount > 0
-		right = right and data.moveAmount > 0
+		forward = forward and (data.moveAmount > 0)
+		backward = backward and (data.moveAmount > 0)
+		left = left and (data.moveAmount > 0)
+		right = right and (data.moveAmount > 0)
 
 		-- -- Forward motion
 		local inputState = (forward) and Enum.UserInputState.End or Enum.UserInputState.Begin
@@ -62,6 +62,8 @@ local function displayKey(data)
 		ctrlModule.activeController.jumpRequested = ctrlModule.activeController.jumpEnabled and (inputState == Enum.UserInputState.Begin)
 
 		ctrlModule.activeController:UpdateMovement(inputState)
+		--ctrlModule.moveFunction(PlayersService.LocalPlayer, ctrlModule:calculateRawMoveVector(ctrlModule.humanoid, moveVec), false)
+
 		ctrlModule.activeController:UpdateJump()
 
 		--if data == "d" then
@@ -79,7 +81,6 @@ local function displayKey(data)
 		--	ctrlModule.humanoid.Jump = keyboard.isJumping
 		--end
 		--ctrlModule.activeController.moveVector = moveVec
-		--ctrlModule.moveFunction(PlayersService.LocalPlayer, ctrlModule:calculateRawMoveVector(ctrlModule.humanoid, moveVec), false)
 		--ctrlModule.humanoid.Jump = true
 		--ctrlModule.activeControlModule.updateJumpTest()
 		--keyboard.UpdateJumpTest()

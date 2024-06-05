@@ -15,7 +15,8 @@ function BaseCharacterController.new()
 	local self = setmetatable({}, BaseCharacterController)
 	self.enabled = false
 	self.moveVector = ZERO_VECTOR3
-	self.moveVectorIsCameraRelative = true
+	-- TODO: Restore
+	self.moveVectorIsCameraRelative = false --true
 	self.isJumping = false
 	return self
 end
