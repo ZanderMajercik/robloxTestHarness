@@ -44,6 +44,29 @@ local function convertToZUp(v)
 	return zUpFrame * v
 end
 
+local function lidarObservations()
+    local numLidarSamples = 30
+    local maxDist = 200
+    local origin = firstPlayer.Character:FindFirstChild("HumanoidRootPart").Position
+    local lidarObs = {}
+
+    local params = RaycastParams.new()
+    -- Prevent self-intersection by filtering the player model.
+    params.FilterType = Enum.RaycastFilterType.Exclude
+    params.FilterDescendantsInstances = {firstPlayer.Character}
+    for i = 0, numLidarSamples, 1 do
+        -- TODO: madrona starts the raycast offset by pi/2 but roblox doesn't need this factor
+        -- to make the observations match.
+        local theta = 2 * math.pi * (i / numLidarSamples) + math.pi * 0.5
+        -- Direction encodes ray distance.
+        --Account for Roblox coordinate system.
+        local direction = Vector3.new(-math.cos(theta), 0, math.sin(theta)) * maxDist
+        local rayResult = workspace:Raycast(origin, direction, params)
+        lidarObs[i] = {rayResult.Distance, rayResult.Instance.Name}
+    end
+    return lidarObs
+end
+
 
 local function getAABB()
 	local pMin = Vector3.new(100,100,100)
@@ -94,7 +117,8 @@ local function postObservations()
 		roomAABB = AABB,
 		playerPos = {posZUp.X, posZUp.Y, posZUp.Z},
         goalPos = {goalPosZUp.X, goalPosZUp.Y, goalPosZUp.Z},
-        lava = lavaObservations()
+        lava = lavaObservations(),
+        lidar = lidarObservations()
 	}
 	httpSrv:PostAsync(url, httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
 end
@@ -107,7 +131,8 @@ local function setupLocalServer(player)
 	print("Reached Render Bind")
 	--This should connect to the render loop
 	--TODO: figure out how to order these.
-	RunService.Heartbeat:Connect(postObservations)
+    -- TODO: was heartbeat
+	RunService.RenderStepped:Connect(postObservations)
 	--RunService.Heartbeat:Connect(getInput)
 
 

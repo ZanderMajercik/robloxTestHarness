@@ -13,10 +13,10 @@ local function displayKey(data)
 	local keyboard = require(PlayersService.LocalPlayer:WaitForChild("PlayerScripts").PlayerModule:WaitForChild("ControlModule"):WaitForChild("Keyboard"))
 	--print(keyboard)
 	if ctrlModule then
-		print(require(PlayersService.LocalPlayer:WaitForChild("PlayerScripts").PlayerModule:WaitForChild("ControlModule")))
-		print(keyboard)
-		print("ACTIONS")
-		print(data)
+		-- print(require(PlayersService.LocalPlayer:WaitForChild("PlayerScripts").PlayerModule:WaitForChild("ControlModule")))
+		-- print(keyboard)
+		-- print("ACTIONS")
+		-- print(data)
 		local moveVal = 1
 
 
