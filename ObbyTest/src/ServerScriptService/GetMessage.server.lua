@@ -16,8 +16,10 @@ local firstPlayer = nil
 
 local dataLatch
 
+
+
 local function getInput()
-	--print("GET INPUT")
+	print("GET INPUT")
     local url = "http://localhost:5000/index.json"
     local response = httpSrv:GetAsync(url)
     local b, data =  pcall(decodeWrapper, response)
@@ -72,22 +74,16 @@ local function getAABB()
 	local pMin = Vector3.new(100,100,100)
 	local pMax = Vector3.new(-100,-100,-100)
 	for i, wall in CollectionService:GetTagged("Bounds") do
-		local pos = wall.CFrame.Position
-		pMin = pMin:Min(Vector3.new(pos.X, pos.Y - wall.Size.Y * 0.5, pos.Z))
-		pMax = pMax:Max(Vector3.new(pos.X, pos.Y + wall.Size.Y * 0.5, pos.Z))
+		local pos = convertToZUp(wall.CFrame.Position)
+		pMin = pMin:Min(Vector3.new(pos.X, pos.Y, pos.Z - wall.Size.Y * 0.5))
+		pMax = pMax:Max(Vector3.new(pos.X, pos.Y, pos.Z + wall.Size.Y * 0.5))
 	end
 	
-	-- Convert to Z up before JSON.
-	local pMinZUp = convertToZUp(pMin)
-	local pMaxZUp = convertToZUp(pMax)
-
 	return { 
-		{pMinZUp.X, pMinZUp.Y, pMinZUp.Z},
-		{pMaxZUp.X, pMaxZUp.Y, pMaxZUp.Z}
+		{pMin.X, pMin.Y, pMin.Z},
+		{pMax.X, pMax.Y, pMax.Z}
 	}
 end
-
-
 
 local function goalPosition()
     for i, goal in CollectionService:GetTagged("Goal") do
@@ -100,14 +96,19 @@ local function lavaObservations()
     for i, lava in CollectionService:GetTagged("KillBlock") do
         local orientationZUp = convertToZUp(lava.Position)
         local sizeZUp = convertToZUp(lava.Size)
-        lavaObs[i] = {orientationZUp.X, orientationZUp.Y, orientationZUp.Z, sizeZUp.X, sizeZUp.Y, sizeZUp.Z}
+        lavaObs[i] = {orientationZUp.X, orientationZUp.Y, orientationZUp.Z, math.abs(sizeZUp.X), math.abs(sizeZUp.Y), math.abs(sizeZUp.Z)}
     end
     return lavaObs
 end
 
+local portBase = 5000
+local portNumber = 0
+local numPorts = 15
+
 local function postObservations()
-	--print("POST OBS")
-	local url = "http://localhost:5000/index.json"
+	print("POST OBS")
+    local p = (portNumber + 1) % numPorts
+	local url = "http://localhost:" .. tostring(portBase) .. "/index.json"
 
 	local AABB = getAABB()
 	local posZUp = convertToZUp(firstPlayer.Character:FindFirstChild("HumanoidRootPart").Position)
@@ -118,12 +119,24 @@ local function postObservations()
 		playerPos = {posZUp.X, posZUp.Y, posZUp.Z},
         goalPos = {goalPosZUp.X, goalPosZUp.Y, goalPosZUp.Z},
         lava = lavaObservations(),
-        lidar = lidarObservations()
+        -- TODO: restore
+        --lidar = lidarObservations(),
+        obsTime = tick() --Profile
 	}
 	httpSrv:PostAsync(url, httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
 end
 
-rf.OnServerInvoke = getInput
+
+local function serverRequest(player, action)
+    if action then
+        getInput()
+    else
+        postObservations()
+    end
+end
+
+
+rf.OnServerInvoke = serverRequest
 
 
 local function setupLocalServer(player)
@@ -132,7 +145,7 @@ local function setupLocalServer(player)
 	--This should connect to the render loop
 	--TODO: figure out how to order these.
     -- TODO: was heartbeat
-	RunService.RenderStepped:Connect(postObservations)
+	--RunService.Heartbeat:Connect(postObservations)
 	--RunService.Heartbeat:Connect(getInput)
 
 
