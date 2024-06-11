@@ -7,8 +7,7 @@ local rf = rs:WaitForChild("RemoteFunction")
 --local success = false
 
 function getAction()
-        local doAction = true
-        local response = rf:InvokeServer(doAction)
+        local response = rf:InvokeServer(true)
         -- --math.max(outstandingRequests - 1, 0)
     --success = false
 	--wait(1)
@@ -30,8 +29,7 @@ function getAction()
 end
 
 function triggerObs()
-        local doAction = false
-        local response = rf:InvokeServer(doAction)
+        local response = rf:InvokeServer(false)
          --math.min(outstandingRequests + 1, MAX_OUTSTANDING)
 end
 
@@ -45,13 +43,16 @@ end
 --game:GetService("RunService"):BindToRenderStep("Get Action", Enum.RenderPriority.First.Value - 1, getAction)
 
 
-
---game:GetService("RunService").RenderStepped:Connect(getAction)
---game:GetService("RunService").RenderStepped:Connect(triggerObs)
 game:GetService("RunService").RenderStepped:Connect(moveCamera)
 
+-- TODO: restore, delay to record video.
 wait(5)
-rf:InvokeServer(true)
+game:GetService("RunService").RenderStepped:Connect(getAction)
+game:GetService("RunService").RenderStepped:Connect(triggerObs)
+
+-- Exact sync through client events.
+--wait(5)
+--rf:InvokeServer(true)
 
 -- Framerate limit so HTTPS can keep up.
 --while true do

@@ -89,7 +89,9 @@ local function displayKey(data)
 		print("WHY")
 	end
 	--local didPass = require(httpController:UpdateJump())
-    re:FireServer(false)
+    
+    -- TODO: restore for exact sync.
+    --re:FireServer(false)
 end
 
 

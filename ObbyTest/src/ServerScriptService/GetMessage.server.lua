@@ -16,11 +16,17 @@ end
 
 local firstPlayer = nil
 
-local outstandingRequests = 1
-local MAX_OUTSTANDING = 1
+--local outstandingRequests = 1
+--local MAX_OUTSTANDING = 1
+
+local frameCounter = 0
+local MAX_FRAMES = 15
 
 local function getInput()
-	print("GET INPUT", outstandingRequests)
+    if frameCounter ~= 0 then
+        return
+    end
+	print("GET INPUT")
     local url = "http://localhost:5000/index.json"
     local response = httpSrv:GetAsync(url)
     local b, data =  pcall(decodeWrapper, response)
@@ -76,9 +82,11 @@ local function getAABB()
 	local pMin = Vector3.new(100,100,100)
 	local pMax = Vector3.new(-100,-100,-100)
 	for i, wall in CollectionService:GetTagged("Bounds") do
-		local pos = convertToZUp(wall.CFrame.Position)
-		pMin = pMin:Min(Vector3.new(pos.X, pos.Y, pos.Z - wall.Size.Y * 0.5))
-		pMax = pMax:Max(Vector3.new(pos.X, pos.Y, pos.Z + wall.Size.Y * 0.5))
+        if wall:IsDescendantOf(workspace) then
+            local pos = convertToZUp(wall.CFrame.Position)
+            pMin = pMin:Min(Vector3.new(pos.X, pos.Y, pos.Z - wall.Size.Y * 0.5))
+            pMax = pMax:Max(Vector3.new(pos.X, pos.Y, pos.Z + wall.Size.Y * 0.5))
+        end
 	end
 	
 	return { 
@@ -89,16 +97,22 @@ end
 
 local function goalPosition()
     for i, goal in CollectionService:GetTagged("Goal") do
-        return goal.CFrame.Position
+        if goal:IsDescendantOf(workspace) then
+            return goal.CFrame.Position 
+        end
     end
 end
 
 local function lavaObservations()
     local lavaObs = {}
+    local idx = 0
     for i, lava in CollectionService:GetTagged("KillBlock") do
-        local orientationZUp = convertToZUp(lava.Position)
-        local sizeZUp = convertToZUp(lava.Size)
-        lavaObs[i] = {orientationZUp.X, orientationZUp.Y, orientationZUp.Z, math.abs(sizeZUp.X), math.abs(sizeZUp.Y), math.abs(sizeZUp.Z)}
+        if lava:IsDescendantOf(workspace) then
+            local orientationZUp = convertToZUp(lava.Position)
+            local sizeZUp = convertToZUp(lava.Size)
+            lavaObs[idx] = {orientationZUp.X, orientationZUp.Y, orientationZUp.Z, math.abs(sizeZUp.X), math.abs(sizeZUp.Y), math.abs(sizeZUp.Z)}
+            idx += 1
+        end
     end
     return lavaObs
 end
@@ -107,7 +121,11 @@ local portNumber = 5000
 
 
 local function postObservations()
-	print("POST OBS", outstandingRequests)
+    frameCounter = (frameCounter + 1) % MAX_FRAMES
+    if frameCounter ~= 0 then
+        return
+    end
+	print("POST OBS")
 	local url = "http://localhost:" .. tostring(portNumber) .. "/index.json"
 
 	local AABB = getAABB()
@@ -119,12 +137,10 @@ local function postObservations()
 		playerPos = {posZUp.X, posZUp.Y, posZUp.Z},
         goalPos = {goalPosZUp.X, goalPosZUp.Y, goalPosZUp.Z},
         lava = lavaObservations(),
-        -- TODO: restore
         --lidar = lidarObservations(),
         obsTime = tick() --Profile
 	}
 	httpSrv:PostAsync(url, httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
-    getInput()
 end
 
 
