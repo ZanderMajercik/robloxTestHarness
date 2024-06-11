@@ -1,12 +1,13 @@
 local rs = game:GetService("ReplicatedStorage")
 local msgRe = rs:WaitForChild("MsgReceived")
 local PlayersService = game:GetService("Players")
-local lbl = script.Parent
+
+local re = rs:WaitForChild("SendObservations")
+
 
 local player = PlayersService.LocalPlayer
 
 local function displayKey(data)
-	lbl.Text = "stuff" --data.space
 	--Move the character
 	--TODO: scope this out based on what key came in.
 	local ctrlModule = require(PlayersService.LocalPlayer:WaitForChild("PlayerScripts").PlayerModule:WaitForChild("ControlModule"))
@@ -88,6 +89,7 @@ local function displayKey(data)
 		print("WHY")
 	end
 	--local didPass = require(httpController:UpdateJump())
+    re:FireServer(false)
 end
 
 

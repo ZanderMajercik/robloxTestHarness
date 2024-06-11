@@ -5,9 +5,11 @@ local rf = rs:WaitForChild("RemoteFunction")
 --settings().Studio.ScriptTimeoutLength = -1
 --settings().Studio.ScriptTimeoutLength = -1
 --local success = false
+
 function getAction()
-    local doAction = true
-    local response = rf:InvokeServer(doAction)
+        local doAction = true
+        local response = rf:InvokeServer(doAction)
+        -- --math.max(outstandingRequests - 1, 0)
     --success = false
 	--wait(1)
 	--print("Working?")
@@ -28,22 +30,33 @@ function getAction()
 end
 
 function triggerObs()
-    local doAction = false
-    local response = rf:InvokeServer(doAction)
+        local doAction = false
+        local response = rf:InvokeServer(doAction)
+         --math.min(outstandingRequests + 1, MAX_OUTSTANDING)
+end
+
+function moveCamera()
+    local cameraCFrame = CFrame.new(1.621, 27.285, 14.887) * CFrame.Angles(math.rad(-90), 0, math.rad(90))
+    workspace.CurrentCamera.CFrame = cameraCFrame
 end
 
 
---game:GetService("RunService"):BindToRenderStep("Send Observations", Enum.RenderPriority.First.Value - 1, triggerObs)
---game:GetService("RunService"):BindToRenderStep("Get Action", Enum.RenderPriority.Input.Value - 1, getAction)
+--game:GetService("RunService"):BindToRenderStep("Send Observations", Enum.RenderPriority.Last.Value - 1, triggerObs)
+--game:GetService("RunService"):BindToRenderStep("Get Action", Enum.RenderPriority.First.Value - 1, getAction)
 
--- TODO: restore
-game:GetService("RunService").RenderStepped:Connect(getAction)
-game:GetService("RunService").RenderStepped:Connect(triggerObs)
+
+
+--game:GetService("RunService").RenderStepped:Connect(getAction)
+--game:GetService("RunService").RenderStepped:Connect(triggerObs)
+game:GetService("RunService").RenderStepped:Connect(moveCamera)
+
+wait(5)
+rf:InvokeServer(true)
 
 -- Framerate limit so HTTPS can keep up.
-while true do
-    game:GetService("RunService").RenderStepped:Wait()
-    t0 = tick()
-    game:GetService("RunService").Heartbeat:Wait()
-    repeat until t0 + 1/TARGET_FRAMERATE < tick()
-end
+--while true do
+--    game:GetService("RunService").RenderStepped:Wait()
+--    t0 = tick()
+--    game:GetService("RunService").Heartbeat:Wait()
+--    repeat until t0 + 1/TARGET_FRAMERATE < tick()
+--end

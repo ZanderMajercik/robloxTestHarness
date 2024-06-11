@@ -7,6 +7,8 @@ local rf = rs:WaitForChild("RemoteFunction")
 
 local httpSrv = game:GetService("HttpService")
 
+local re = rs:WaitForChild("SendObservations")
+
 
 local function decodeWrapper(stringtodecode)
 	return httpSrv:JSONDecode(stringtodecode)
@@ -14,15 +16,15 @@ end
 
 local firstPlayer = nil
 
-local dataLatch
-
-
+local outstandingRequests = 1
+local MAX_OUTSTANDING = 1
 
 local function getInput()
-	print("GET INPUT")
+	print("GET INPUT", outstandingRequests)
     local url = "http://localhost:5000/index.json"
     local response = httpSrv:GetAsync(url)
     local b, data =  pcall(decodeWrapper, response)
+    print("Delay: ", tick() - data["obsTime"])
     if b then
     	--print("data = ", data)
     	--local str = tostring(data.key)
@@ -101,14 +103,12 @@ local function lavaObservations()
     return lavaObs
 end
 
-local portBase = 5000
-local portNumber = 0
-local numPorts = 15
+local portNumber = 5000
+
 
 local function postObservations()
-	print("POST OBS")
-    local p = (portNumber + 1) % numPorts
-	local url = "http://localhost:" .. tostring(portBase) .. "/index.json"
+	print("POST OBS", outstandingRequests)
+	local url = "http://localhost:" .. tostring(portNumber) .. "/index.json"
 
 	local AABB = getAABB()
 	local posZUp = convertToZUp(firstPlayer.Character:FindFirstChild("HumanoidRootPart").Position)
@@ -124,6 +124,7 @@ local function postObservations()
         obsTime = tick() --Profile
 	}
 	httpSrv:PostAsync(url, httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
+    getInput()
 end
 
 
@@ -155,5 +156,6 @@ local function setupLocalServer(player)
 	--RunService:BindToRenderStep("Get Action", Enum.RenderPriority.Input.Value - 1, getInput)
 end
 
+re.OnServerEvent:Connect(serverRequest)
 --The event that will trigger the http server pinging
 game.Players.PlayerAdded:Connect(setupLocalServer)
