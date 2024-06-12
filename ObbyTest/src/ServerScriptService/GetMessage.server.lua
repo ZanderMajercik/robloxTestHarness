@@ -14,6 +14,14 @@ local function decodeWrapper(stringtodecode)
 	return httpSrv:JSONDecode(stringtodecode)
 end
 
+-- Allow turning print statements on and off
+local SHOULD_PRINT = true
+local function debugPrint(...)
+    if SHOULD_PRINT then
+        print(...)
+    end
+end
+
 local firstPlayer = nil
 
 --local outstandingRequests = 1
@@ -21,27 +29,11 @@ local firstPlayer = nil
 
 local frameCounter = 0
 local MAX_FRAMES = 15
+local totalSend = 0
+local url = "http://localhost:5000/index.json"
 
-local function getInput()
-    if frameCounter ~= 0 then
-        return
-    end
-	print("GET INPUT")
-    local url = "http://localhost:5000/index.json"
-    local response = httpSrv:GetAsync(url)
-    local b, data =  pcall(decodeWrapper, response)
-    print("Delay: ", tick() - data["obsTime"])
-    if b then
-    	--print("data = ", data)
-    	--local str = tostring(data.key)
-    	msgRe:FireClient(firstPlayer, data)
-        return true
-    else
-    	print("Can't decode")
-    end
-    --dataLatch = data
-    return false
-end
+local secondsPerHTTPRequest = 60 / 500
+local httpDelta = 0
 
 local zUpFrame = CFrame.fromMatrix(
 	Vector3.new(0,0,0),
@@ -117,17 +109,46 @@ local function lavaObservations()
     return lavaObs
 end
 
-local portNumber = 5000
-
-
-local function postObservations()
-    frameCounter = (frameCounter + 1) % MAX_FRAMES
-    if frameCounter ~= 0 then
+local function getInput(delta)
+    --if frameCounter ~= 0 then
+    --    return
+    --end
+    --debugPrint("delta (GET)", getDelta)
+    if httpDelta > 0 then
+        httpDelta -= delta
         return
     end
-	print("POST OBS")
-	local url = "http://localhost:" .. tostring(portNumber) .. "/index.json"
+    httpDelta = secondsPerHTTPRequest
+    totalSend += 1
+    debugPrint("TOTAL SEND  (GET): ", totalSend, time(), delta)
+    local response = httpSrv:GetAsync(url)
+    local b, data =  pcall(decodeWrapper, response)
+    --debugPrint("Delay: ", tick() - data["obsTime"])
+    if b then
+    	--debugPrint("data = ", data)
+    	--local str = tostring(data.key)
+    	msgRe:FireClient(firstPlayer, data)
+        return true
+    else
+    	debugPrint("Can't decode")
+    end
+    --dataLatch = data
+    return false
+end
 
+local postDelta = secondsPerHTTPRequest
+local function postObservations(delta)
+    --frameCounter = (frameCounter + 1) % MAX_FRAMES
+    --if frameCounter ~= 0 then
+    --    return
+    --end
+    --debugPrint("delta (POST)", postDelta)
+    postDelta -= delta
+    if postDelta > 0 then
+        return
+    end
+    postDelta = secondsPerHTTPRequest
+    totalSend += 1
 	local AABB = getAABB()
 	local posZUp = convertToZUp(firstPlayer.Character:FindFirstChild("HumanoidRootPart").Position)
     local goalPosZUp = convertToZUp(goalPosition())
@@ -140,15 +161,28 @@ local function postObservations()
         --lidar = lidarObservations(),
         obsTime = tick() --Profile
 	}
-	httpSrv:PostAsync(url, httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
+	local response = httpSrv:PostAsync(url, httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
+    debugPrint("TOTAL SEND (POST): ", totalSend, time(), delta)
+    local b, data =  pcall(decodeWrapper, response)
+    --debugPrint("Delay: ", tick() - data["obsTime"])
+    if b then
+    	--debugPrint("data = ", data)
+    	--local str = tostring(data.key)
+    	msgRe:FireClient(firstPlayer, data)
+        return true
+    else
+    	debugPrint("Can't decode")
+    end
+    --dataLatch = data
+    return false
 end
 
 
-local function serverRequest(player, action)
+local function serverRequest(player, action, delta)
     if action then
-        getInput()
+        getInput(delta)
     else
-        postObservations()
+        postObservations(delta)
     end
 end
 
@@ -158,7 +192,7 @@ rf.OnServerInvoke = serverRequest
 
 local function setupLocalServer(player)
 	firstPlayer = player
-	print("Reached Render Bind")
+	debugPrint("Reached Render Bind")
 	--This should connect to the render loop
 	--TODO: figure out how to order these.
     -- TODO: was heartbeat

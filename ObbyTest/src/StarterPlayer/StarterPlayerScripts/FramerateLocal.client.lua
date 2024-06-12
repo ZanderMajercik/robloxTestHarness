@@ -6,8 +6,8 @@ local rf = rs:WaitForChild("RemoteFunction")
 --settings().Studio.ScriptTimeoutLength = -1
 --local success = false
 
-function getAction()
-        local response = rf:InvokeServer(true)
+function getAction(delta)
+        local response = rf:InvokeServer(true, delta)
         -- --math.max(outstandingRequests - 1, 0)
     --success = false
 	--wait(1)
@@ -28,8 +28,8 @@ function getAction()
 	--repeat until success
 end
 
-function triggerObs()
-        local response = rf:InvokeServer(false)
+function triggerObs(delta)
+        local response = rf:InvokeServer(false, delta)
          --math.min(outstandingRequests + 1, MAX_OUTSTANDING)
 end
 
@@ -45,9 +45,7 @@ end
 
 game:GetService("RunService").RenderStepped:Connect(moveCamera)
 
--- TODO: restore, delay to record video.
-wait(5)
-game:GetService("RunService").RenderStepped:Connect(getAction)
+--game:GetService("RunService").RenderStepped:Connect(getAction)
 game:GetService("RunService").RenderStepped:Connect(triggerObs)
 
 -- Exact sync through client events.
