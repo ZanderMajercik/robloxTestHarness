@@ -14,13 +14,8 @@ local function decodeWrapper(stringtodecode)
 	return httpSrv:JSONDecode(stringtodecode)
 end
 
--- Allow turning print statements on and off
-local SHOULD_PRINT = true
-local function debugPrint(...)
-    if SHOULD_PRINT then
-        print(...)
-    end
-end
+-- Helpful debugging functions.
+local DebugHelpers = require(rs.DebugHelpers)
 
 local firstPlayer = nil
 
@@ -33,7 +28,6 @@ local totalSend = 0
 local url = "http://localhost:5000/index.json"
 
 local secondsPerHTTPRequest = 60 / 500
-local httpDelta = 0
 
 local zUpFrame = CFrame.fromMatrix(
 	Vector3.new(0,0,0),
@@ -96,94 +90,69 @@ local function goalPosition()
 end
 
 local function lavaObservations()
+    DebugHelpers:print("GETTING LAVA")
     local lavaObs = {}
-    local idx = 0
+    local idx = 1
     for i, lava in CollectionService:GetTagged("KillBlock") do
         if lava:IsDescendantOf(workspace) then
+            DebugHelpers:print("found lava")
             local orientationZUp = convertToZUp(lava.Position)
             local sizeZUp = convertToZUp(lava.Size)
-            lavaObs[idx] = {orientationZUp.X, orientationZUp.Y, orientationZUp.Z, math.abs(sizeZUp.X), math.abs(sizeZUp.Y), math.abs(sizeZUp.Z)}
+            lavaObs[idx] = {orientationZUp.X, orientationZUp.Y, orientationZUp.Z,
+            math.abs(sizeZUp.X) * 0.5, math.abs(sizeZUp.Y) * 0.5, math.abs(sizeZUp.Z) * 0.5}
             idx += 1
         end
     end
     return lavaObs
 end
 
-local function getInput(delta)
-    --if frameCounter ~= 0 then
-    --    return
-    --end
-    --debugPrint("delta (GET)", getDelta)
-    if httpDelta > 0 then
-        httpDelta -= delta
-        return
-    end
-    httpDelta = secondsPerHTTPRequest
-    totalSend += 1
-    debugPrint("TOTAL SEND  (GET): ", totalSend, time(), delta)
-    local response = httpSrv:GetAsync(url)
-    local b, data =  pcall(decodeWrapper, response)
-    --debugPrint("Delay: ", tick() - data["obsTime"])
-    if b then
-    	--debugPrint("data = ", data)
-    	--local str = tostring(data.key)
-    	msgRe:FireClient(firstPlayer, data)
-        return true
-    else
-    	debugPrint("Can't decode")
-    end
-    --dataLatch = data
-    return false
-end
-
-local postDelta = secondsPerHTTPRequest
+local httpDelta = secondsPerHTTPRequest
 local function postObservations(delta)
     --frameCounter = (frameCounter + 1) % MAX_FRAMES
     --if frameCounter ~= 0 then
     --    return
     --end
-    --debugPrint("delta (POST)", postDelta)
-    postDelta -= delta
-    if postDelta > 0 then
+    --DebugHelpers:print("delta (POST)", httpDelta)
+    httpDelta -= delta
+    if httpDelta > 0 then
         return
     end
-    postDelta = secondsPerHTTPRequest
+    httpDelta = secondsPerHTTPRequest
     totalSend += 1
 	local AABB = getAABB()
 	local posZUp = convertToZUp(firstPlayer.Character:FindFirstChild("HumanoidRootPart").Position)
     local goalPosZUp = convertToZUp(goalPosition())
+
+    local lObs = lavaObservations()
+    DebugHelpers:print(lObs)
 	--Collect the player centric observations.
 	local obs = {
 		roomAABB = AABB,
 		playerPos = {posZUp.X, posZUp.Y, posZUp.Z},
         goalPos = {goalPosZUp.X, goalPosZUp.Y, goalPosZUp.Z},
-        lava = lavaObservations(),
+        lava = lObs,
         --lidar = lidarObservations(),
         obsTime = tick() --Profile
 	}
 	local response = httpSrv:PostAsync(url, httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
-    debugPrint("TOTAL SEND (POST): ", totalSend, time(), delta)
+    DebugHelpers:print("TOTAL SEND (POST): ", totalSend, time(), delta)
     local b, data =  pcall(decodeWrapper, response)
-    --debugPrint("Delay: ", tick() - data["obsTime"])
+    --DebugHelpers:print("Delay: ", tick() - data["obsTime"])
     if b then
-    	--debugPrint("data = ", data)
+    	--DebugHelpers:print("data = ", data)
     	--local str = tostring(data.key)
     	msgRe:FireClient(firstPlayer, data)
         return true
     else
-    	debugPrint("Can't decode")
+    	DebugHelpers:print("Can't decode")
     end
     --dataLatch = data
     return false
 end
 
 
-local function serverRequest(player, action, delta)
-    if action then
-        getInput(delta)
-    else
+local function serverRequest(player, delta)
         postObservations(delta)
-    end
 end
 
 
@@ -192,7 +161,7 @@ rf.OnServerInvoke = serverRequest
 
 local function setupLocalServer(player)
 	firstPlayer = player
-	debugPrint("Reached Render Bind")
+	DebugHelpers:print("Reached Render Bind")
 	--This should connect to the render loop
 	--TODO: figure out how to order these.
     -- TODO: was heartbeat

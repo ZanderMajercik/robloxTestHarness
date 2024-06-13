@@ -88,8 +88,20 @@ local function displayKey(data)
 	else
 		print("WHY")
 	end
+	--local didPass = require(httpController:UpdateJump())
+    
+    -- TODO: restore for exact sync.
+    --re:FireServer(false)
 end
 
 
 
 msgRe.OnClientEvent:Connect(displayKey)
+
+---while true do
+---    game:GetService("RunService").RenderStepped:Wait()
+---    game:GetService("RunService").Heartbeat:Wait()
+---    if (displayKey(data)) then
+---        break
+---    end 
+---end

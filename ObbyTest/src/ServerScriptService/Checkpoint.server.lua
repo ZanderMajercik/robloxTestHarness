@@ -33,7 +33,7 @@ local function killFunc(hit)
 	end
 end
 
-workspace.CheckerLevel.ss.Touched:connect(killFunc)
+workspace.SimpleLevel.ss.Touched:connect(killFunc)
 
 for i, spawnPart in CollectionService:GetTagged("Checkpoint") do
 	spawnPart.Touched:connect(killFunc)
