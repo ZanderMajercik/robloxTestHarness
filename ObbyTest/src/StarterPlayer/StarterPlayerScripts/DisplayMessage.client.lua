@@ -32,15 +32,10 @@ local function displayKey(data)
     end
 
 	--Move the character
-	--TODO: scope this out based on what key came in.
 	local ctrlModule = require(PlayersService.LocalPlayer:WaitForChild("PlayerScripts").PlayerModule:WaitForChild("ControlModule"))
 	local keyboard = require(PlayersService.LocalPlayer:WaitForChild("PlayerScripts").PlayerModule:WaitForChild("ControlModule"):WaitForChild("Keyboard"))
-	--print(keyboard)
-	if ctrlModule then
-		-- print(require(PlayersService.LocalPlayer:WaitForChild("PlayerScripts").PlayerModule:WaitForChild("ControlModule")))
-		-- print(keyboard)
-		-- print("ACTIONS")
-		-- print(data)
+	
+    if ctrlModule then
 		local moveVal = 1
 
 
@@ -120,11 +115,3 @@ end
 
 
 msgRe.OnClientEvent:Connect(displayKey)
-
----while true do
----    game:GetService("RunService").RenderStepped:Wait()
----    game:GetService("RunService").Heartbeat:Wait()
----    if (displayKey(data)) then
----        break
----    end 
----end
