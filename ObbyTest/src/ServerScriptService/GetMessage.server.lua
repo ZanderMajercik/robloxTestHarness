@@ -106,6 +106,8 @@ local function lavaObservations()
     return lavaObs
 end
 
+-- Used to track steps remaining
+local isAlive = false
 local httpDelta = secondsPerHTTPRequest
 local function postObservations(delta)
     --frameCounter = (frameCounter + 1) % MAX_FRAMES
@@ -131,6 +133,7 @@ local function postObservations(delta)
 		playerPos = {posZUp.X, posZUp.Y, posZUp.Z},
         goalPos = {goalPosZUp.X, goalPosZUp.Y, goalPosZUp.Z},
         lava = lObs,
+        alive = isAlive,
         --lidar = lidarObservations(),
         obsTime = tick() --Profile
 	}
@@ -162,6 +165,15 @@ rf.OnServerInvoke = serverRequest
 local function setupLocalServer(player)
 	firstPlayer = player
 	DebugHelpers:print("Reached Render Bind")
+
+    --Connect functions to signal if the character is alive or dead.
+    firstPlayer.CharacterAdded:Connect(function(character)
+        isAlive = true
+        character.Humanoid.Died:Connect(function()
+			isAlive = false
+		end)
+    end)
+
 	--This should connect to the render loop
 	--TODO: figure out how to order these.
     -- TODO: was heartbeat

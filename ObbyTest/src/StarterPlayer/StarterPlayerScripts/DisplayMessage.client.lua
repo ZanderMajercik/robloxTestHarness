@@ -4,10 +4,33 @@ local PlayersService = game:GetService("Players")
 
 local re = rs:WaitForChild("SendObservations")
 
+-- Helpful debugging functions.
+local DebugHelpers = require(rs.DebugHelpers)
 
 local player = PlayersService.LocalPlayer
 
+local zUpFrame = CFrame.fromMatrix(
+	Vector3.new(0,0,0),
+	Vector3.new(-1, 0, 0),
+	Vector3.new(0, 0, 1),
+	Vector3.new(0, 1, 0)
+)
+
+local function convertToZUp(v)
+	return zUpFrame * v
+end
+
 local function displayKey(data)
+    -- Deal with trajectory events
+    if data.kill then
+        --Received kill signal from server, meaning end of trajectory replay.
+        player.Character.Humanoid.Health = 0
+    end
+    if data.startPos[1] ~= 0 and data.startPos[2] ~= 0 and data.startPos[3] ~= 0 then
+        local newStartPos = convertToZUp(Vector3.new(data.startPos[1], data.startPos[2], player.Character.Humanoid.HipHeight))
+        player.Character:MoveTo(newStartPos)
+    end
+
 	--Move the character
 	--TODO: scope this out based on what key came in.
 	local ctrlModule = require(PlayersService.LocalPlayer:WaitForChild("PlayerScripts").PlayerModule:WaitForChild("ControlModule"))
