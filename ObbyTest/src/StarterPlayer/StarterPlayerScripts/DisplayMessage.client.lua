@@ -27,10 +27,15 @@ local function takeAction(action)
         --Received kill signal from server, meaning end of trajectory replay.
         player.Character.Humanoid.Health = 0
     end
+
+    print("startPos", tostring(action.startPos))
+
     if action.startPos[1] ~= 0 and action.startPos[2] ~= 0 and action.startPos[3] ~= 0 then
         local newStartPos = convertToZUp(Vector3.new(action.startPos[1], action.startPos[2], player.Character.Humanoid.HipHeight))
         player.Character:MoveTo(newStartPos)
     end
+
+    return
 
     --TODO: restore
     -- print("Action", action)
@@ -136,7 +141,7 @@ local function executeTrajectoryAction(delta)
         moveAmount = tonumber(trajectory[trajectoryActionIdx].action[1]),
         moveAngle = tonumber(trajectory[trajectoryActionIdx].action[2]),
         jump = tonumber(trajectory[trajectoryActionIdx].action[4]),
-        startPos = position,
+        startPos = position, -- TODO: restore, always just set position.
         --(trajectoryActionIdx == 1) and position or {0,0,0},
         kill = (trajectoryActionIdx == trajectorySteps)
     }
