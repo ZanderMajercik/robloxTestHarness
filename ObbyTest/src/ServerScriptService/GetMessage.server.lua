@@ -19,13 +19,13 @@ local DebugHelpers = require(rs.DebugHelpers)
 
 local firstPlayer = nil
 
---local outstandingRequests = 1
---local MAX_OUTSTANDING = 1
-
 local frameCounter = 0
 local MAX_FRAMES = 15
 local totalSend = 0
-local url = "http://localhost:5000/index.json"
+
+local baseURL = "http://localhost:5000/"
+local sendObservations = "sendObservations"
+local requestTrajectory = "requestTrajectory"
 
 local secondsPerHTTPRequest = 60 / 500
 
@@ -52,7 +52,7 @@ local function lidarObservations()
     params.FilterDescendantsInstances = {firstPlayer.Character}
     for i = 0, numLidarSamples, 1 do
         -- TODO: madrona starts the raycast offset by pi/2 but roblox doesn't need this factor
-        -- to make the observations match.
+        -- to make the observations match(?)
         local theta = 2 * math.pi * (i / numLidarSamples) + math.pi * 0.5
         -- Direction encodes ray distance.
         --Account for Roblox coordinate system.
@@ -90,12 +90,10 @@ local function goalPosition()
 end
 
 local function lavaObservations()
-    DebugHelpers:print("GETTING LAVA")
     local lavaObs = {}
     local idx = 1
     for i, lava in CollectionService:GetTagged("KillBlock") do
         if lava:IsDescendantOf(workspace) then
-            DebugHelpers:print("found lava")
             local orientationZUp = convertToZUp(lava.Position)
             local sizeZUp = convertToZUp(lava.Size)
             lavaObs[idx] = {orientationZUp.X, orientationZUp.Y, orientationZUp.Z,
@@ -106,15 +104,24 @@ local function lavaObservations()
     return lavaObs
 end
 
+local function getTrajectory(player)
+    -- Get an entire trajectory from the server and send it to the client for playback.
+    local response = httpSrv:GetAsync(baseURL .. requestTrajectory)
+    local b, data = pcall(decodeWrapper, response)
+    if b then
+    	--DebugHelpers:print("data = ", data)
+    	--local str = tostring(data.key)
+    	msgRe:FireClient(firstPlayer, data)
+        return true
+    else
+    	DebugHelpers:print("Can't decode")
+    end
+end
+
 -- Used to track steps remaining
 local isAlive = false
 local httpDelta = secondsPerHTTPRequest
-local function postObservations(delta)
-    --frameCounter = (frameCounter + 1) % MAX_FRAMES
-    --if frameCounter ~= 0 then
-    --    return
-    --end
-    --DebugHelpers:print("delta (POST)", httpDelta)
+local function postObservations(player, delta)
     httpDelta -= delta
     if httpDelta > 0 then
         return
@@ -126,7 +133,6 @@ local function postObservations(delta)
     local goalPosZUp = convertToZUp(goalPosition())
 
     local lObs = lavaObservations()
-    DebugHelpers:print(lObs)
 	--Collect the player centric observations.
 	local obs = {
 		roomAABB = AABB,
@@ -137,10 +143,10 @@ local function postObservations(delta)
         --lidar = lidarObservations(),
         obsTime = tick() --Profile
 	}
-	local response = httpSrv:PostAsync(url, httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
-    DebugHelpers:print("TOTAL SEND (POST): ", totalSend, time(), delta)
+	local response = httpSrv:PostAsync(baseURL .. sendObservations, httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
+    --DebugHelpers:print("TOTAL SEND (POST): ", totalSend, time(), delta)
     local b, data =  pcall(decodeWrapper, response)
-    --DebugHelpers:print("Delay: ", tick() - data["obsTime"])
+    DebugHelpers:print("Delay: ", tick() - data["obsTime"])
     if b then
     	--DebugHelpers:print("data = ", data)
     	--local str = tostring(data.key)
@@ -153,18 +159,10 @@ local function postObservations(delta)
     return false
 end
 
-
-local function serverRequest(player, delta)
-        postObservations(delta)
-end
-
-
-rf.OnServerInvoke = serverRequest
-
+rf.OnServerInvoke = postObservations
 
 local function setupLocalServer(player)
 	firstPlayer = player
-	DebugHelpers:print("Reached Render Bind")
 
     --Connect functions to signal if the character is alive or dead.
     firstPlayer.CharacterAdded:Connect(function(character)
@@ -180,6 +178,8 @@ local function setupLocalServer(player)
 	--RunService.Heartbeat:Connect(postObservations)
 	--RunService.Heartbeat:Connect(getInput)
 
+    --TODO: restore?
+    --postObservations(player, 10.0)
 
 	--Bind the http functions to the render loop
 	-- ONLY callable from client code.
@@ -187,6 +187,7 @@ local function setupLocalServer(player)
 	--RunService:BindToRenderStep("Get Action", Enum.RenderPriority.Input.Value - 1, getInput)
 end
 
-re.OnServerEvent:Connect(serverRequest)
+--re.OnServerEvent:Connect(forwardPostObservations)
 --The event that will trigger the http server pinging
 game.Players.PlayerAdded:Connect(setupLocalServer)
+game.Players.PlayerAdded:Connect(getTrajectory)
