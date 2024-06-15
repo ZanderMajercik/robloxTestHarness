@@ -22,22 +22,21 @@ local function convertToZUp(v)
 end
 
 local function takeAction(action)
-
     if action.kill then
         --Received kill signal from server, meaning end of trajectory replay.
         player.Character.Humanoid.Health = 0
     end
 
-    print("startPos", tostring(action.startPos))
+    print("character CFrame", tostring(player.Character.HumanoidRootPart.CFrame))
 
-    if action.startPos[1] ~= 0 and action.startPos[2] ~= 0 and action.startPos[3] ~= 0 then
-        local newStartPos = convertToZUp(Vector3.new(action.startPos[1], action.startPos[2], player.Character.Humanoid.HipHeight))
-        player.Character:MoveTo(newStartPos)
+    if action.startPos[1] ~= 0 or action.startPos[2] ~= 0 or action.startPos[3] ~= 0 then
+        local newStartPos = convertToZUp(Vector3.new(action.startPos[1], action.startPos[2], action.startPos[3] + 3)) -- TODO: restore
+        player.Character.HumanoidRootPart.CFrame = CFrame.new(newStartPos)
+        --player.Character:MoveTo(newStartPos)
+        DebugHelpers:print("Y-Up start pos:", action.startPos[1], action.startPos[2], action.startPos[3])
     end
 
-    return
 
-    --TODO: restore
     -- print("Action", action)
 
 	-- --Move the character
@@ -120,6 +119,11 @@ local function takeAction(action)
     --re:FireServer(false)
 end
 
+
+local function lerp(a, b, alpha)
+    return a + (b - a) * alpha
+end
+
 -- An array of trajectory steps
 local trajectory = {}
 local trajectorySteps = 0
@@ -128,25 +132,30 @@ local secondsPerTrajectoryStep = -1
 local trajectoryActionIdx = -1
 local trajectoryDelta = 0
 local function executeTrajectoryAction(delta)
-    trajectoryDelta -= delta
-    if trajectoryDelta > 0 then
+    local idx = math.floor(trajectoryDelta / secondsPerTrajectoryStep)
+    if idx >= trajectorySteps - 1 then
         return
     end
-    trajectoryDelta = secondsPerTrajectoryStep
+    local alpha = trajectoryDelta - (idx * secondsPerTrajectoryStep)
+    trajectoryDelta += delta
+
     -- Assuming the first entry in the trajectory
     -- correctly sets start pos, this will automatically
     -- loop correctly by setting the agent back to where it should go.
-    local position = {trajectory[trajectoryActionIdx].position[1], trajectory[trajectoryActionIdx].position[2], trajectory[trajectoryActionIdx].position[3]}
+    local position = {
+        lerp(trajectory[idx + 1].position[1], trajectory[idx + 2].position[1], alpha),
+        lerp(trajectory[idx + 1].position[2], trajectory[idx + 2].position[2], alpha),
+        lerp(trajectory[idx + 1].position[3], trajectory[idx + 2].position[3], alpha)
+    }
     local action = {
         moveAmount = tonumber(trajectory[trajectoryActionIdx].action[1]),
         moveAngle = tonumber(trajectory[trajectoryActionIdx].action[2]),
         jump = tonumber(trajectory[trajectoryActionIdx].action[4]),
         startPos = position, -- TODO: restore, always just set position.
         --(trajectoryActionIdx == 1) and position or {0,0,0},
-        kill = (trajectoryActionIdx == trajectorySteps)
+        kill = (idx == trajectorySteps)
     }
     takeAction(action)
-    trajectoryActionIdx = (trajectoryActionIdx + 1) % trajectorySteps
 end
 
 local function triggerObs(delta)
@@ -168,11 +177,11 @@ local function receieveActionData(actionSequence)
         print(actionSequence)
         trajectory = actionSequence.trajectory
         secondsPerTrajectoryStep = actionSequence.secondsPerTrajectoryStep
-        trajectoryDelta = secondsPerTrajectoryStep
+        trajectoryDelta = 0 --secondsPerTrajectoryStep
         trajectoryActionIdx = 1
         trajectorySteps = table.getn(trajectory)
         -- Bind trajectory action to renderstepped.
-        game:GetService("RunService").RenderStepped:Connect(executeTrajectoryAction)
+        game:GetService("RunService").Heartbeat:Connect(executeTrajectoryAction)
         return
     end
 
@@ -185,7 +194,8 @@ msgRe.OnClientEvent:Connect(receieveActionData)
 
 function moveCamera()
     -- Hardcoded camera for project figure generation.
-    local cameraCFrame = CFrame.new(1.621, 27.285, 14.887) * CFrame.Angles(math.rad(-90), 0, math.rad(90))
+    local cameraCFrame = CFrame.new(36.451, 14.86, 49.94) *  CFrame.angles(math.rad(-12.9), math.rad(85.832), 0)
+    --CFrame.new(1.621, 27.285, 14.887) * CFrame.Angles(math.rad(-90), 0, math.rad(90))
     workspace.CurrentCamera.CFrame = cameraCFrame
 end
 
