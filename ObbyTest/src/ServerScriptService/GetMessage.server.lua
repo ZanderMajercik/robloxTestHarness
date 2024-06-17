@@ -190,4 +190,6 @@ end
 --re.OnServerEvent:Connect(forwardPostObservations)
 --The event that will trigger the http server pinging
 game.Players.PlayerAdded:Connect(setupLocalServer)
-game.Players.PlayerAdded:Connect(getTrajectory)
+
+--TODO: set this based on what the server first returns.
+--game.Players.PlayerAdded:Connect(getTrajectory)

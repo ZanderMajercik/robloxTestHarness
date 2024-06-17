@@ -1,6 +1,8 @@
 --VSCode: Collect and process hit detection for all kill blocks.
 local CollectionService = game:GetService("CollectionService")
 
+local CHARACTER_HIP_HEIGHT = 3.025
+
 for i, block in CollectionService:GetTagged("KillBlock") do
 	block.Touched:connect(function(hit)
 		if hit and hit.Parent and (hit.Parent:FindFirstChild("Humanoid") or hit.Parent:FindFirstChild("NPCHumanoid")) then
@@ -11,7 +13,7 @@ for i, block in CollectionService:GetTagged("KillBlock") do
                 local localPos = hit.Parent.HumanoidRootPart.CFrame.Position
                 local trueHit = false
 
-                -- Forgive a little bit: check if xz position is within lava bounds.
+                -- Slightly for forgiving collision logic.
                 local overMin = pMin.X < localPos.X
                 local underMax = pMax.X > localPos.X
                 trueHit = trueHit or (overMin and underMax) 
@@ -19,9 +21,10 @@ for i, block in CollectionService:GetTagged("KillBlock") do
                 overMin = pMin.Z < localPos.Z
                 underMax = pMax.Z > localPos.Z
                 trueHit = trueHit or (overMin and underMax) 
+                print("hit", hit, "position", hit.CFrame, "localPos", localPos, "hipHeight", hit.parent.Humanoid.HipHeight)
                 
-                if trueHit and localPos.Y <= 3.0004 then
-                    print("hit", hit, "position", hit.CFrame)
+                if trueHit then
+                    --if trueHit and localPos.Y <= (CHARACTER_HIP_HEIGHT + 0.0004) then
                     hit.Parent.Humanoid.Health = 0
                 end
 			else

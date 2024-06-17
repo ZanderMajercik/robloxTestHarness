@@ -10,6 +10,8 @@ local DebugHelpers = require(rs.DebugHelpers)
 
 local player = PlayersService.LocalPlayer
 
+local CHARACTER_HIP_HEIGHT = 3.025
+
 local zUpFrame = CFrame.fromMatrix(
 	Vector3.new(0,0,0),
 	Vector3.new(-1, 0, 0),
@@ -27,10 +29,11 @@ local function takeAction(action)
         player.Character.Humanoid.Health = 0
     end
 
-    print("character CFrame", tostring(player.Character.HumanoidRootPart.CFrame))
+    --DebugHelpers:print("Action", action)
+    --DebugHelpers:print("character CFrame", tostring(player.Character.HumanoidRootPart.CFrame))
 
     if action.startPos[1] ~= 0 or action.startPos[2] ~= 0 or action.startPos[3] ~= 0 then
-        local newStartPos = convertToZUp(Vector3.new(action.startPos[1], action.startPos[2], action.startPos[3] + 3)) -- TODO: restore
+        local newStartPos = convertToZUp(Vector3.new(action.startPos[1], action.startPos[2], action.startPos[3] + CHARACTER_HIP_HEIGHT))
         player.Character.HumanoidRootPart.CFrame = CFrame.new(newStartPos)
         --player.Character:MoveTo(newStartPos)
         DebugHelpers:print("Y-Up start pos:", action.startPos[1], action.startPos[2], action.startPos[3])
@@ -39,84 +42,52 @@ local function takeAction(action)
 
     -- print("Action", action)
 
-	-- --Move the character
-	-- local ctrlModule = require(PlayersService.LocalPlayer:WaitForChild("PlayerScripts").PlayerModule:WaitForChild("ControlModule"))
-	-- local keyboard = require(PlayersService.LocalPlayer:WaitForChild("PlayerScripts").PlayerModule:WaitForChild("ControlModule"):WaitForChild("Keyboard"))
+	--Move the character
+	local ctrlModule = require(PlayersService.LocalPlayer:WaitForChild("PlayerScripts").PlayerModule:WaitForChild("ControlModule"))
+	local keyboard = require(PlayersService.LocalPlayer:WaitForChild("PlayerScripts").PlayerModule:WaitForChild("ControlModule"):WaitForChild("Keyboard"))
 	
-    -- if ctrlModule then
-	-- 	local moveVal = 1
+    if ctrlModule then
+		local moveVal = 1
+		-- Translate the move angle to be forward relative.
+		local moveAngle = action.moveAngle
 
-    --     -- actionJson = {
-	-- 	-- 	"moveAmount" : 0,
-	-- 	-- 	"moveAngle" : 0,
-	-- 	-- 	"jump" : 0
-	-- 	-- }
-		
-	-- 	-- Translate the move angle to be forward relative.
-	-- 	local moveAngle = action.moveAngle
+		--Non-camera Relative Motion
+		local forward = moveAngle == 0 or moveAngle == 1 or moveAngle == 7
+		local backward = moveAngle > 2 and moveAngle < 6
+		local left = moveAngle > 4
+		local right = moveAngle > 0 and moveAngle < 4
 
-	-- 	--Non-camera Relative Motion
-	-- 	local forward = moveAngle == 0 or moveAngle == 1 or moveAngle == 7
-	-- 	local backward = moveAngle > 2 and moveAngle < 6
-	-- 	local left = moveAngle > 4
-	-- 	local right = moveAngle > 0 and moveAngle < 4
+		-- Account for no move action
+		forward = forward and (action.moveAmount > 0)
+		backward = backward and (action.moveAmount > 0)
+		left = left and (action.moveAmount > 0)
+		right = right and (action.moveAmount > 0)
 
-	-- 	-- Account for no move action
-	-- 	forward = forward and (action.moveAmount > 0)
-	-- 	backward = backward and (action.moveAmount > 0)
-	-- 	left = left and (action.moveAmount > 0)
-	-- 	right = right and (action.moveAmount > 0)
+		-- -- Forward motion
+		local inputState = (forward) and Enum.UserInputState.End or Enum.UserInputState.Begin
+		ctrlModule.activeController.forwardValue = (inputState == Enum.UserInputState.Begin) and -1 or 0
 
-	-- 	-- -- Forward motion
-	-- 	local inputState = (forward) and Enum.UserInputState.End or Enum.UserInputState.Begin
-	-- 	ctrlModule.activeController.forwardValue = (inputState == Enum.UserInputState.Begin) and -1 or 0
+		-- -- Backward motion
+		inputState = (backward) and Enum.UserInputState.End or Enum.UserInputState.Begin
+		ctrlModule.activeController.backwardValue = (inputState == Enum.UserInputState.Begin) and 1 or 0
 
-	-- 	-- -- Backward motion
-	-- 	inputState = (backward) and Enum.UserInputState.End or Enum.UserInputState.Begin
-	-- 	ctrlModule.activeController.backwardValue = (inputState == Enum.UserInputState.Begin) and 1 or 0
+		-- Left motion
+		inputState = (left) and Enum.UserInputState.End or Enum.UserInputState.Begin
+		ctrlModule.activeController.leftValue = (inputState == Enum.UserInputState.Begin) and -1 or 0
 
-	-- 	-- Left motion
-	-- 	inputState = (left) and Enum.UserInputState.End or Enum.UserInputState.Begin
-	-- 	ctrlModule.activeController.leftValue = (inputState == Enum.UserInputState.Begin) and -1 or 0
+		-- Right motion
+		inputState = (right) and Enum.UserInputState.End or Enum.UserInputState.Begin
+		ctrlModule.activeController.rightValue = (inputState == Enum.UserInputState.Begin) and 1 or 0
 
-	-- 	-- Right motion
-	-- 	inputState = (right) and Enum.UserInputState.End or Enum.UserInputState.Begin
-	-- 	ctrlModule.activeController.rightValue = (inputState == Enum.UserInputState.Begin) and 1 or 0
+		-- Jump
+		inputState = (action.jump == 0) and Enum.UserInputState.End or Enum.UserInputState.Begin
+		ctrlModule.activeController.jumpRequested = ctrlModule.activeController.jumpEnabled and (inputState == Enum.UserInputState.Begin)
 
-	-- 	-- Jump
-	-- 	inputState = (action.jump == 0) and Enum.UserInputState.End or Enum.UserInputState.Begin
-	-- 	ctrlModule.activeController.jumpRequested = ctrlModule.activeController.jumpEnabled and (inputState == Enum.UserInputState.Begin)
-
-	-- 	ctrlModule.activeController:UpdateMovement(inputState)
-	-- 	--ctrlModule.moveFunction(PlayersService.LocalPlayer, ctrlModule:calculateRawMoveVector(ctrlModule.humanoid, moveVec), false)
-
-	-- 	ctrlModule.activeController:UpdateJump()
-
-	-- 	--if data == "d" then
-	-- 	--	ctrlModule.activeController.forwardValue = -1
-	-- 	--	ctrlModule.activeController:UpdateMovement(Enum.UserInputState.Begin)
-	-- 	--	--moveVec = Vector3.new(moveVal,0,0)
-	-- 	--elseif data == "a" then
-	-- 	--	moveVec = Vector3.new(-moveVal,0,0)
-	-- 	--elseif data == "w" then
-	-- 	--	moveVec = Vector3.new(0,0,-moveVal)
-	-- 	--elseif data == "s" then
-	-- 	--	moveVec = Vector3.new(0,0,moveVal)
-	-- 	--elseif data == "space" then
-	-- 	--	keyboard.updateJumpTest()
-	-- 	--	ctrlModule.humanoid.Jump = keyboard.isJumping
-	-- 	--end
-	-- 	--ctrlModule.activeController.moveVector = moveVec
-	-- 	--ctrlModule.humanoid.Jump = true
-	-- 	--ctrlModule.activeControlModule.updateJumpTest()
-	-- 	--keyboard.UpdateJumpTest()
-	-- else
-	-- 	print("WHY")
-	-- end
-	--local didPass = require(httpController:UpdateJump())
-    
-    -- TODO: restore for exact sync.
-    --re:FireServer(false)
+		ctrlModule.activeController:UpdateMovement(inputState)
+		ctrlModule.activeController:UpdateJump()
+	else
+		print("WHY")
+	end
 end
 
 
@@ -131,31 +102,73 @@ local trajectorySteps = 0
 local secondsPerTrajectoryStep = -1
 local trajectoryActionIdx = -1
 local trajectoryDelta = 0
-local function executeTrajectoryAction(delta)
+
+local function setTrajectoryPosition(delta)
     local idx = math.floor(trajectoryDelta / secondsPerTrajectoryStep)
     if idx >= trajectorySteps - 1 then
+        DebugHelpers:print("END OF TRAJECTORY")
+        local endAction = {
+            moveAmount = 0,
+            moveAngle = 0,
+            jump = 0,
+            startPos = {0,0,0},
+            kill = false
+        }
+        takeAction(endAction)
         return
     end
     local alpha = trajectoryDelta - (idx * secondsPerTrajectoryStep)
     trajectoryDelta += delta
-
     -- Assuming the first entry in the trajectory
     -- correctly sets start pos, this will automatically
     -- loop correctly by setting the agent back to where it should go.
+    local actionIdx = idx + 1
     local position = {
-        lerp(trajectory[idx + 1].position[1], trajectory[idx + 2].position[1], alpha),
-        lerp(trajectory[idx + 1].position[2], trajectory[idx + 2].position[2], alpha),
-        lerp(trajectory[idx + 1].position[3], trajectory[idx + 2].position[3], alpha)
+        lerp(trajectory[actionIdx].position[1], trajectory[actionIdx + 1].position[1], alpha),
+        lerp(trajectory[actionIdx].position[2], trajectory[actionIdx + 1].position[2], alpha),
+        lerp(trajectory[actionIdx].position[3], trajectory[actionIdx + 1].position[3], alpha)
+    }
+    print(position[3])
+    local action = {
+        moveAmount = 0,
+        moveAngle = 0,
+        jump = 0,
+        startPos = position,
+        kill = false
+    }
+    takeAction(action)
+end
+
+local debugStop = false
+local function executeTrajectoryAction(delta)
+    if debugStop then
+        return
+    end
+    trajectoryDelta -= delta
+    print("CFRame:", player.Character.HumanoidRootPart.CFrame)
+    if trajectoryDelta >= 0 then
+        return
+    end
+    trajectoryDelta += secondsPerTrajectoryStep
+
+    local position = {
+        trajectory[trajectoryActionIdx].position[1],
+        trajectory[trajectoryActionIdx].position[2],
+        trajectory[trajectoryActionIdx].position[3]
     }
     local action = {
         moveAmount = tonumber(trajectory[trajectoryActionIdx].action[1]),
         moveAngle = tonumber(trajectory[trajectoryActionIdx].action[2]),
         jump = tonumber(trajectory[trajectoryActionIdx].action[4]),
-        startPos = position, -- TODO: restore, always just set position.
-        --(trajectoryActionIdx == 1) and position or {0,0,0},
-        kill = (idx == trajectorySteps)
+        startPos = (trajectoryActionIdx == 1) and position or {0,0,0},
+        kill = (trajectoryActionIdx == trajectorySteps)
     }
+    if action.kill then
+        debugStop = true
+    end
+    print("Taking Action: ", trajectoryActionIdx, time())
     takeAction(action)
+    trajectoryActionIdx = (trajectoryActionIdx % trajectorySteps) + 1
 end
 
 local function triggerObs(delta)
@@ -165,23 +178,23 @@ end
 -- Forwarding function triggered via RemoteEvent on the Roblox Server
 -- when data (trajectories or actions) is received from the Python server.
 
--- TODO: restore
---local triggerObsConnection = game:GetService("RunService").RenderStepped:Connect(triggerObs)
+local triggerObsConnection = game:GetService("RunService").RenderStepped:Connect(triggerObs)
 
 local function receieveActionData(actionSequence)
 
+
     if actionSequence.isTrajectory then
-        -- TODO: restore
-        --triggerObsConnection:Disconnect()
+        triggerObsConnection:Disconnect()
         -- Store trajectory in local variable.
-        print(actionSequence)
+        DebugHelpers:print(actionSequence)
         trajectory = actionSequence.trajectory
         secondsPerTrajectoryStep = actionSequence.secondsPerTrajectoryStep
-        trajectoryDelta = 0 --secondsPerTrajectoryStep
+        trajectoryDelta = secondsPerTrajectoryStep
         trajectoryActionIdx = 1
         trajectorySteps = table.getn(trajectory)
         -- Bind trajectory action to renderstepped.
         game:GetService("RunService").Heartbeat:Connect(executeTrajectoryAction)
+        --game:GetService("RunService").Heartbeat:Connect(setTrajectoryPosition)
         return
     end
 
