@@ -172,40 +172,55 @@ local function executeTrajectoryAction(delta)
 end
 
 local function triggerObs(delta)
-    local response = rf:InvokeServer(delta)
+    local response = rf:InvokeServer("postObservations", delta)
 end
 
 -- Forwarding function triggered via RemoteEvent on the Roblox Server
--- when data (trajectories or actions) is received from the Python server.
+-- when data (serverconfig, trajectories, actions) is received from the Python server.
+local triggerObsConnection = nil
+local function receiveServerData(serverData)
+    if serverData.msgType == "Config" then
+        if serverData.MODE == "LIVE" then
+            -- Start the continuous action/observation loop.
+            triggerObsConnection = game:GetService("RunService").RenderStepped:Connect(triggerObs)
+        elseif serverData.MODE == "PLAYBACK" then
+            -- Stop the continuous action/observation loop if necessary.
+            if triggerObsConnection then
+                triggerObsConnection:Disconnect()
+            end
+            rf:InvokeServer("getTrajectory")
+        end
+    end
 
-local triggerObsConnection = game:GetService("RunService").RenderStepped:Connect(triggerObs)
-
-local function receieveActionData(actionSequence)
-
-
-    if actionSequence.isTrajectory then
-        triggerObsConnection:Disconnect()
+    if serverData.msgType == "Trajectory" then
         -- Store trajectory in local variable.
-        DebugHelpers:print(actionSequence)
-        trajectory = actionSequence.trajectory
-        secondsPerTrajectoryStep = actionSequence.secondsPerTrajectoryStep
+        DebugHelpers:print(serverData)
+        trajectory = serverData.trajectory
+        secondsPerTrajectoryStep = serverData.secondsPerTrajectoryStep
         trajectoryDelta = secondsPerTrajectoryStep
         trajectoryActionIdx = 1
         trajectorySteps = table.getn(trajectory)
         -- Bind trajectory action to renderstepped.
-        game:GetService("RunService").Heartbeat:Connect(executeTrajectoryAction)
-        --game:GetService("RunService").Heartbeat:Connect(setTrajectoryPosition)
-        return
+        if serverData.trajectoryMode == "POSITION_ONLY" then
+            -- Playback just the positions (useful for debugging).
+            game:GetService("RunService").Heartbeat:Connect(setTrajectoryPosition)
+        elseif serverData.trajectoryMode == "ACTION" then
+            game:GetService("RunService").Heartbeat:Connect(executeTrajectoryAction)
+        else
+            -- Normal action playback.
+            game:GetService("RunService").Heartbeat:Connect(executeTrajectoryAction)
+        end
     end
 
-    -- Take the action from the data
-    takeAction(actionSequence)
+    if serverData.msgType == "Action" then
+        takeAction(serverData)
+    end
 end
 
-msgRe.OnClientEvent:Connect(receieveActionData)
+msgRe.OnClientEvent:Connect(receiveServerData)
 
 
-function moveCamera()
+local function moveCamera()
     -- Hardcoded camera for project figure generation.
     local cameraCFrame = CFrame.new(36.451, 14.86, 49.94) *  CFrame.angles(math.rad(-12.9), math.rad(85.832), 0)
     --CFrame.new(1.621, 27.285, 14.887) * CFrame.Angles(math.rad(-90), 0, math.rad(90))

@@ -2,6 +2,7 @@ local rs = game:GetService("ReplicatedStorage")
 local msgRe = rs:WaitForChild("MsgReceived")
 local RunService = game:GetService("RunService")
 local CollectionService = game:GetService("CollectionService")
+local ServerStorage = game:GetService("ServerStorage")
 
 local rf = rs:WaitForChild("RemoteFunction")
 
@@ -24,9 +25,6 @@ local MAX_FRAMES = 15
 local totalSend = 0
 
 local baseURL = "http://localhost:5000/"
-local sendObservations = "sendObservations"
-local requestTrajectory = "requestTrajectory"
-
 local secondsPerHTTPRequest = 60 / 500
 
 local zUpFrame = CFrame.fromMatrix(
@@ -106,7 +104,7 @@ end
 
 local function getTrajectory(player)
     -- Get an entire trajectory from the server and send it to the client for playback.
-    local response = httpSrv:GetAsync(baseURL .. requestTrajectory)
+    local response = httpSrv:GetAsync(baseURL .. "requestTrajectory")
     local b, data = pcall(decodeWrapper, response)
     if b then
     	--DebugHelpers:print("data = ", data)
@@ -143,7 +141,7 @@ local function postObservations(player, delta)
         --lidar = lidarObservations(),
         obsTime = tick() --Profile
 	}
-	local response = httpSrv:PostAsync(baseURL .. sendObservations, httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
+	local response = httpSrv:PostAsync(baseURL .. "sendObservations", httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
     --DebugHelpers:print("TOTAL SEND (POST): ", totalSend, time(), delta)
     local b, data =  pcall(decodeWrapper, response)
     DebugHelpers:print("Delay: ", tick() - data["obsTime"])
@@ -159,7 +157,11 @@ local function postObservations(player, delta)
     return false
 end
 
-rf.OnServerInvoke = postObservations
+local function serverForward(functionName, ...)
+    functionName(...)
+end
+
+rf.OnServerInvoke = serverForward
 
 local function setupLocalServer(player)
 	firstPlayer = player
@@ -172,19 +174,33 @@ local function setupLocalServer(player)
 		end)
     end)
 
-	--This should connect to the render loop
-	--TODO: figure out how to order these.
-    -- TODO: was heartbeat
-	--RunService.Heartbeat:Connect(postObservations)
-	--RunService.Heartbeat:Connect(getInput)
-
-    --TODO: restore?
-    --postObservations(player, 10.0)
-
-	--Bind the http functions to the render loop
-	-- ONLY callable from client code.
-	--RunService:BindToRenderStep("Send Observations", Enum.RenderPriority.First.Value - 1, postObservations)
-	--RunService:BindToRenderStep("Get Action", Enum.RenderPriority.Input.Value - 1, getInput)
+    local setupServer = httpSrv:GetAsync(baseURL .. "setupServer")
+    local b, serverSetupData =  pcall(decodeWrapper, setupServer)
+    print(serverSetupData)
+    if b then
+        local level = workspace:FindFirstChild(serverSetupData.LEVEL)
+        if not level then
+            -- Level is not loaded instead load it from ServerStorage.
+            level = ServerStorage:FindFirstChild(serverSetupData.LEVEL)
+            if not level then
+                local errorMsg = {
+                    error = "Level \"" .. serverSetupData.LEVEL .. "\" not found in workspace or ServerStorage."
+                }
+	            httpSrv:PostAsync(baseURL .. "error", httpSrv:JSONEncode(errorMsg), Enum.HttpContentType.ApplicationJson, false)
+                return
+            end
+            --Move all existing levels back into ServerStorage.
+            for idx, child in workspace:GetChildren() do
+                local startIdx = string.find(child.Name, "Level")
+                if startIdx then
+                    child.Parent = ServerStorage
+                end
+            end
+            --Move the requested level into the workspace.
+            level.Parent = workspace
+        end
+        msgRe:FireClient(firstPlayer, serverSetupData)
+    end
 end
 
 --re.OnServerEvent:Connect(forwardPostObservations)
