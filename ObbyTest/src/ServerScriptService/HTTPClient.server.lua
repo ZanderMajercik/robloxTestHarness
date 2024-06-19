@@ -139,7 +139,7 @@ serverFunctionTable["postObservations"] = function(player, delta)
         goalPos = {goalPosZUp.X, goalPosZUp.Y, goalPosZUp.Z},
         lava = lObs,
         alive = isAlive,
-        --lidar = lidarObservations(),
+        --lidar = lidarObservations(player),
         obsTime = tick() --Profile
 	}
 	local response = httpSrv:PostAsync(baseURL .. "sendObservations", httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
