@@ -18,8 +18,6 @@ end
 -- Helpful debugging functions.
 local DebugHelpers = require(rs.DebugHelpers)
 
-local firstPlayer = nil
-
 local frameCounter = 0
 local MAX_FRAMES = 15
 local totalSend = 0
@@ -38,16 +36,16 @@ local function convertToZUp(v)
 	return zUpFrame * v
 end
 
-local function lidarObservations()
+local function lidarObservations(player)
     local numLidarSamples = 30
     local maxDist = 200
-    local origin = firstPlayer.Character:FindFirstChild("HumanoidRootPart").Position
+    local origin = player.Character:FindFirstChild("HumanoidRootPart").Position
     local lidarObs = {}
 
     local params = RaycastParams.new()
     -- Prevent self-intersection by filtering the player model.
     params.FilterType = Enum.RaycastFilterType.Exclude
-    params.FilterDescendantsInstances = {firstPlayer.Character}
+    params.FilterDescendantsInstances = {player.Character}
     for i = 0, numLidarSamples, 1 do
         -- TODO: madrona starts the raycast offset by pi/2 but roblox doesn't need this factor
         -- to make the observations match(?)
@@ -102,14 +100,17 @@ local function lavaObservations()
     return lavaObs
 end
 
-local function getTrajectory(player)
+local serverFunctionTable = {}
+
+
+serverFunctionTable["getTrajectory"] = function (player)
     -- Get an entire trajectory from the server and send it to the client for playback.
     local response = httpSrv:GetAsync(baseURL .. "requestTrajectory")
     local b, data = pcall(decodeWrapper, response)
     if b then
     	--DebugHelpers:print("data = ", data)
     	--local str = tostring(data.key)
-    	msgRe:FireClient(firstPlayer, data)
+    	msgRe:FireClient(player, data)
         return true
     else
     	DebugHelpers:print("Can't decode")
@@ -119,7 +120,7 @@ end
 -- Used to track steps remaining
 local isAlive = false
 local httpDelta = secondsPerHTTPRequest
-local function postObservations(player, delta)
+serverFunctionTable["postObservations"] = function(player, delta)
     httpDelta -= delta
     if httpDelta > 0 then
         return
@@ -127,7 +128,7 @@ local function postObservations(player, delta)
     httpDelta = secondsPerHTTPRequest
     totalSend += 1
 	local AABB = getAABB()
-	local posZUp = convertToZUp(firstPlayer.Character:FindFirstChild("HumanoidRootPart").Position)
+	local posZUp = convertToZUp(player.Character:FindFirstChild("HumanoidRootPart").Position)
     local goalPosZUp = convertToZUp(goalPosition())
 
     local lObs = lavaObservations()
@@ -148,7 +149,7 @@ local function postObservations(player, delta)
     if b then
     	--DebugHelpers:print("data = ", data)
     	--local str = tostring(data.key)
-    	msgRe:FireClient(firstPlayer, data)
+    	msgRe:FireClient(player, data)
         return true
     else
     	DebugHelpers:print("Can't decode")
@@ -157,17 +158,17 @@ local function postObservations(player, delta)
     return false
 end
 
-local function serverForward(functionName, ...)
-    functionName(...)
+--First argument is always the player triggering the event.
+local function serverForward(player, functionName, ...)
+    serverFunctionTable[functionName](player, ...)
 end
 
 rf.OnServerInvoke = serverForward
 
 local function setupLocalServer(player)
-	firstPlayer = player
 
     --Connect functions to signal if the character is alive or dead.
-    firstPlayer.CharacterAdded:Connect(function(character)
+    player.CharacterAdded:Connect(function(character)
         isAlive = true
         character.Humanoid.Died:Connect(function()
 			isAlive = false
@@ -199,7 +200,7 @@ local function setupLocalServer(player)
             --Move the requested level into the workspace.
             level.Parent = workspace
         end
-        msgRe:FireClient(firstPlayer, serverSetupData)
+        msgRe:FireClient(player, serverSetupData)
     end
 end
 
