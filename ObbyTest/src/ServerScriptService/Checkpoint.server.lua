@@ -1,14 +1,27 @@
---VSCode: Collect and process hit detection for all kill blocks.
 local CollectionService = game:GetService("CollectionService")
+local httpSrv = game:GetService("HttpService")
+
+local baseURL = "http://localhost:5000/"
 
 
 local function killFunc(hit)
 	if hit and hit.Parent and hit.Parent:FindFirstChild("Humanoid") then
 		local player = game.Players:GetPlayerFromCharacter(hit.Parent)
 
+        if hit.Parent.Humanoid.Health == 0 then
+            return
+        end
+        local episode = {
+            success = true
+            -- TODO: send observations at full Roblox granularity (not just for every action but for every timestep)
+        }
+        -- Send the successful trajectory information.
+        httpSrv:PostAsync(baseURL .. "reportEpisode", httpSrv:JSONEncode(episode))
+
+        --Reload the character at the start
+        player:LoadCharacter()
 		-- For now, checkpoint kills you
-		-- TODO: implement a counter that tracks success rate when you leave it running.
-		hit.Parent.Humanoid.Health = 0
+		--hit.Parent.Humanoid.Health = 0
 
 
 		--TODO: restore, logic to create new checkpoint data, will re-enable when testing full game.

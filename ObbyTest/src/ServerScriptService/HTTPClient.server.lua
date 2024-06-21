@@ -172,6 +172,9 @@ local function setupLocalServer(player)
         isAlive = true
         character.Humanoid.Died:Connect(function()
 			isAlive = false
+            local episode = { success = false }
+            httpSrv:PostAsync(baseURL .. "reportEpisode", httpSrv:JSONEncode(episode))
+            player:LoadCharacter()
 		end)
     end)
 

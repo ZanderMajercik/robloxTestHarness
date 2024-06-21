@@ -13,7 +13,7 @@ for i, block in CollectionService:GetTagged("KillBlock") do
                 local localPos = hit.Parent.HumanoidRootPart.CFrame.Position
                 local trueHit = false
 
-                -- Slightly for forgiving collision logic.
+                -- Slightly more forgiving collision logic.
                 local overMin = pMin.X < localPos.X
                 local underMax = pMax.X > localPos.X
                 trueHit = trueHit or (overMin and underMax) 
