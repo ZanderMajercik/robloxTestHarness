@@ -118,16 +118,18 @@ serverFunctionTable["getTrajectory"] = function (player)
     end
 end
 
+local episode = {
+    success = false,
+    observations = {}
+}
+
 -- Used to track steps remaining
 local isAlive = false
 local httpDelta = secondsPerHTTPRequest
 serverFunctionTable["postObservations"] = function(player, delta)
-    httpDelta -= delta
-    if httpDelta > 0 then
-        return
-    end
-    httpDelta = secondsPerHTTPRequest
-    totalSend += 1
+
+    -- We collect observations on every frame in order to send complete
+    -- trajectories back to the server.
 	local AABB = getAABB()
 	local posZUp = convertToZUp(player.Character:FindFirstChild("HumanoidRootPart").Position)
     local goalPosZUp = convertToZUp(goalPosition())
@@ -143,6 +145,14 @@ serverFunctionTable["postObservations"] = function(player, delta)
         --lidar = lidarObservations(player),
         obsTime = tick() --Profile
 	}
+
+    table.insert(episode.observations, obs)
+    httpDelta -= delta
+    if httpDelta > 0 then
+        return
+    end
+    httpDelta = secondsPerHTTPRequest
+    totalSend += 1
 	local response = httpSrv:PostAsync(baseURL .. "sendObservations", httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
     --DebugHelpers:print("TOTAL SEND (POST): ", totalSend, time(), delta)
     local b, data =  pcall(decodeWrapper, response)
@@ -166,11 +176,11 @@ end
 
 rf.OnServerInvoke = serverForward
 
-local episodeSuccess = false
+
 local successfulTrajectoryEvent = rs:FindFirstChild("SuccessfulTrajectory")
 
 successfulTrajectoryEvent.Event:Connect(function()
-    episodeSuccess = true
+    episode.success = true
 end)
 
 
@@ -180,12 +190,12 @@ local function setupLocalServer(player)
     player.CharacterAdded:Connect(function(character)
         isAlive = true
         character.Humanoid.Died:Connect(function()
+            --Safe because the character only dies once even if a Killblock
+            --or the ending checkpoint is hit multiple times.
 			isAlive = false
-            local episode = {
-                success = episodeSuccess
-            }
             httpSrv:PostAsync(baseURL .. "reportEpisode", httpSrv:JSONEncode(episode))
-            episodeSuccess = false
+            episode.success = false
+            episode.observations = {}
             player:LoadCharacter()
 		end)
     end)
