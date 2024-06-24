@@ -17,6 +17,7 @@ end
 
 -- Helpful debugging functions.
 local DebugHelpers = require(rs.DebugHelpers)
+local currentTrajectory = require(rs.TrajectoryState)
 
 local frameCounter = 0
 local MAX_FRAMES = 15
@@ -165,6 +166,14 @@ end
 
 rf.OnServerInvoke = serverForward
 
+local episodeSuccess = false
+local successfulTrajectoryEvent = rs:FindFirstChild("SuccessfulTrajectory")
+
+successfulTrajectoryEvent.Event:Connect(function()
+    episodeSuccess = true
+end)
+
+
 local function setupLocalServer(player)
 
     --Connect functions to signal if the character is alive or dead.
@@ -172,8 +181,11 @@ local function setupLocalServer(player)
         isAlive = true
         character.Humanoid.Died:Connect(function()
 			isAlive = false
-            local episode = { success = false }
+            local episode = {
+                success = episodeSuccess
+            }
             httpSrv:PostAsync(baseURL .. "reportEpisode", httpSrv:JSONEncode(episode))
+            episodeSuccess = false
             player:LoadCharacter()
 		end)
     end)
