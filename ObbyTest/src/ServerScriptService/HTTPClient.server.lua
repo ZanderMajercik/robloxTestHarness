@@ -17,14 +17,11 @@ end
 
 -- Helpful debugging functions.
 local DebugHelpers = require(rs.DebugHelpers)
-local currentTrajectory = require(rs.TrajectoryState)
+local HTTPSettings = require(rs.HTTPSettings)
 
 local frameCounter = 0
 local MAX_FRAMES = 15
 local totalSend = 0
-
-local baseURL = "http://localhost:5000/"
-local secondsPerHTTPRequest = 60 / 500
 
 local zUpFrame = CFrame.fromMatrix(
 	Vector3.new(0,0,0),
@@ -106,7 +103,7 @@ local serverFunctionTable = {}
 
 serverFunctionTable["getTrajectory"] = function (player)
     -- Get an entire trajectory from the server and send it to the client for playback.
-    local response = httpSrv:GetAsync(baseURL .. "requestTrajectory")
+    local response = httpSrv:GetAsync(HTTPSettings.baseURLAndPort .. "requestTrajectory")
     local b, data = pcall(decodeWrapper, response)
     if b then
     	--DebugHelpers:print("data = ", data)
@@ -125,7 +122,8 @@ local episode = {
 
 -- Used to track steps remaining
 local isAlive = false
-local httpDelta = secondsPerHTTPRequest
+local httpDelta = HTTPSettings.secondsPerHTTPRequest
+print("deltaType", type(httpDelta))
 serverFunctionTable["postObservations"] = function(player, delta)
 
     -- We collect observations on every frame in order to send complete
@@ -153,7 +151,7 @@ serverFunctionTable["postObservations"] = function(player, delta)
     end
     httpDelta = secondsPerHTTPRequest
     totalSend += 1
-	local response = httpSrv:PostAsync(baseURL .. "sendObservations", httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
+	local response = httpSrv:PostAsync(HTTPSettings.baseURLAndPort .. "sendObservations", httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
     --DebugHelpers:print("TOTAL SEND (POST): ", totalSend, time(), delta)
     local b, data =  pcall(decodeWrapper, response)
     DebugHelpers:print("Delay: ", tick() - data["obsTime"])
@@ -193,14 +191,14 @@ local function setupLocalServer(player)
             --Safe because the character only dies once even if a Killblock
             --or the ending checkpoint is hit multiple times.
 			isAlive = false
-            httpSrv:PostAsync(baseURL .. "reportEpisode", httpSrv:JSONEncode(episode))
+            httpSrv:PostAsync(HTTPSettings.baseURLAndPort .. "reportEpisode", httpSrv:JSONEncode(episode))
             episode.success = false
             episode.observations = {}
             player:LoadCharacter()
 		end)
     end)
 
-    local setupServer = httpSrv:GetAsync(baseURL .. "setupServer")
+    local setupServer = httpSrv:GetAsync(HTTPSettings.baseURLAndPort .. "setupServer")
     local b, serverSetupData =  pcall(decodeWrapper, setupServer)
     print(serverSetupData)
     if b then
@@ -212,7 +210,7 @@ local function setupLocalServer(player)
                 local errorMsg = {
                     error = "Level \"" .. serverSetupData.LEVEL .. "\" not found in workspace or ServerStorage."
                 }
-	            httpSrv:PostAsync(baseURL .. "error", httpSrv:JSONEncode(errorMsg), Enum.HttpContentType.ApplicationJson, false)
+	            httpSrv:PostAsync(HTTPSettings.baseURLAndPort .. "error", httpSrv:JSONEncode(errorMsg), Enum.HttpContentType.ApplicationJson, false)
                 return
             end
             --Move all existing levels back into ServerStorage.
