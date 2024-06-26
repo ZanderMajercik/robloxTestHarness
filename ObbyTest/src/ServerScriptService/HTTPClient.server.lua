@@ -1,3 +1,4 @@
+--!strict
 local rs = game:GetService("ReplicatedStorage")
 local msgRe = rs:WaitForChild("MsgReceived")
 local RunService = game:GetService("RunService")
@@ -29,6 +30,26 @@ local zUpFrame = CFrame.fromMatrix(
 	Vector3.new(0, 0, 1),
 	Vector3.new(0, 1, 0)
 )
+
+local function lock_new_index(t, k, v)
+    if (k~="_" and string.sub(k,1,2) ~= "__") then
+      GLOBAL_unlock(_G)
+      error("GLOBALS are locked -- " .. k ..
+            " must be declared local or prefix with '__' for globals.", 2)
+    else
+      rawset(t, k, v)
+    end
+end
+
+local function GLOBAL_lock(t)
+    local mt = getmetatable(t) or {}
+    mt.__newindex = lock_new_index
+    setmetatable(t, mt)
+end
+
+-- Lock the global table to catch local declaration errors.
+GLOBAL_lock(_G)
+print(_G)
 
 local function convertToZUp(v)
 	return zUpFrame * v
@@ -123,7 +144,7 @@ local episode = {
 -- Used to track steps remaining
 local isAlive = false
 local httpDelta = HTTPSettings.secondsPerHTTPRequest
-print("deltaType", type(httpDelta))
+print("httpDelta", type(httpDelta), httpDelta)
 serverFunctionTable["postObservations"] = function(player, delta)
 
     -- We collect observations on every frame in order to send complete
@@ -145,11 +166,19 @@ serverFunctionTable["postObservations"] = function(player, delta)
 	}
 
     table.insert(episode.observations, obs)
+    print("httpDeltatype", type(httpDelta), httpDelta)
+    print("deltaType", type(delta), delta)
     httpDelta -= delta
+    print("httpDeltatypeAFTER", type(httpDelta), httpDelta)
+    print("deltaTypeAFTER", type(delta), delta)    
     if httpDelta > 0 then
         return
     end
-    httpDelta = secondsPerHTTPRequest
+    print(_G)
+    
+    -- TODO: restore
+    httpDelta = secondsPerHTTPRequest 
+    --HTTPSettings.secondsPerHTTPRequest
     totalSend += 1
 	local response = httpSrv:PostAsync(HTTPSettings.baseURLAndPort .. "sendObservations", httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
     --DebugHelpers:print("TOTAL SEND (POST): ", totalSend, time(), delta)
