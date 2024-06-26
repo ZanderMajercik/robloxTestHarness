@@ -175,10 +175,8 @@ serverFunctionTable["postObservations"] = function(player, delta)
         return
     end
     print(_G)
-    
-    -- TODO: restore
-    httpDelta = secondsPerHTTPRequest 
-    --HTTPSettings.secondsPerHTTPRequest
+
+    httpDelta = HTTPSettings.secondsPerHTTPRequest
     totalSend += 1
 	local response = httpSrv:PostAsync(HTTPSettings.baseURLAndPort .. "sendObservations", httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
     --DebugHelpers:print("TOTAL SEND (POST): ", totalSend, time(), delta)
@@ -235,6 +233,9 @@ local function setupLocalServer(player)
         if not level then
             -- Level is not loaded instead load it from ServerStorage.
             level = ServerStorage:FindFirstChild(serverSetupData.LEVEL)
+            -- TODO: restore
+            local newScript = ServerStorage:FindFirstChild("Script")
+            newScript.Parent = workspace
             if not level then
                 local errorMsg = {
                     error = "Level \"" .. serverSetupData.LEVEL .. "\" not found in workspace or ServerStorage."
@@ -252,6 +253,8 @@ local function setupLocalServer(player)
             --Move the requested level into the workspace.
             level.Parent = workspace
         end
+        -- TODO: simply don't call this if we don't want to setup
+        -- agent control mode on the client.
         msgRe:FireClient(player, serverSetupData)
     end
 end

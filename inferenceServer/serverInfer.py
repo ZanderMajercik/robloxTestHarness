@@ -33,6 +33,9 @@ arg_parser.add_argument('--record-log', type=str)
 arg_parser.add_argument('--replay-trajectories', type=str, help="JSON file of trajectories to replay.")
 arg_parser.add_argument('--key-control', action='store_true', help="If true, control actions with the keyboard.")
 arg_parser.add_argument('--no-level-obs', action='store_true')
+arg_parser.add_argument('--num-channels', type=int, default=256)
+arg_parser.add_argument('--separate-value', action='store_true')
+arg_parser.add_argument('--fp16', action='store_true')
 
 args = arg_parser.parse_args()
 
@@ -141,7 +144,8 @@ policy = make_policy(num_obs_features, None, args.num_channels, args.separate_va
 weights = LearningState.load_policy_weights(args.ckpt_path)
 policy.load_state_dict(weights, strict=False)
 
-policy = policy.to(torch.device(f"cuda:{args.gpu_id}")) if args.gpu_sim else policy.to(torch.device('cpu'))
+# Just CPU for now.
+policy = policy.to(torch.device('cpu'))
 policy.eval()
 
 actions = sim.action_tensor().to_torch()
