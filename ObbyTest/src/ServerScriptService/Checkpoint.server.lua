@@ -2,7 +2,6 @@ local CollectionService = game:GetService("CollectionService")
 local httpSrv = game:GetService("HttpService")
 local rs = game:GetService("ReplicatedStorage")
 
-local baseURL = "http://localhost:5000/"
 local currentTrajectory = require(rs.TrajectoryState)
 
 local trajectorySuccessEvent = rs:FindFirstChild("SuccessfulTrajectory")
@@ -23,7 +22,7 @@ local function killFunc(hit)
         --    -- TODO: send observations at full Roblox granularity (not just for every action but for every timestep)
         --}
         ---- Send the successful trajectory information.
-        --httpSrv:PostAsync(baseURL .. "reportEpisode", httpSrv:JSONEncode(episode))
+        --httpSrv:PostAsync(baseURLAndPort .. "reportEpisode", httpSrv:JSONEncode(episode))
 		--if hit.Parent.Humanoid.Health > 0 then
 		--	currentTrajectory.trajectory.success = true
 		--	-- For now, checkpoint kills you
