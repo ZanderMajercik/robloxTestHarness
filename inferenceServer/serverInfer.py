@@ -28,26 +28,11 @@ warnings.filterwarnings("error")
 torch.manual_seed(0)
 
 arg_parser = argparse.ArgumentParser()
-arg_parser.add_argument('--gpu-id', type=int, default=0)
 arg_parser.add_argument('--ckpt-path', type=str, required=True)
 arg_parser.add_argument('--record-log', type=str)
 arg_parser.add_argument('--replay-trajectories', type=str, help="JSON file of trajectories to replay.")
 arg_parser.add_argument('--key-control', action='store_true', help="If true, control actions with the keyboard.")
-
-
-
-arg_parser.add_argument('--use-fixed-world', action='store_true')
 arg_parser.add_argument('--no-level-obs', action='store_true')
-
-arg_parser.add_argument('--num-channels', type=int, default=256)
-arg_parser.add_argument('--separate-value', action='store_true')
-arg_parser.add_argument('--fp16', action='store_true')
-
-arg_parser.add_argument('--gpu-sim', action='store_true')
-arg_parser.add_argument('--use-complex-level', action='store_true')
-
-# Architecture args
-arg_parser.add_argument('--entity-network', action='store_true')
 
 args = arg_parser.parse_args()
 
