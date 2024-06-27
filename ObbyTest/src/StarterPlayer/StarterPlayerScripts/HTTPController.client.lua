@@ -40,12 +40,9 @@ local function takeAction(action)
     end
 
 
-    -- print("Action", action)
-
-	--Move the character
 	local ctrlModule = require(PlayersService.LocalPlayer:WaitForChild("PlayerScripts").PlayerModule:WaitForChild("ControlModule"))
-	local keyboard = require(PlayersService.LocalPlayer:WaitForChild("PlayerScripts").PlayerModule:WaitForChild("ControlModule"):WaitForChild("Keyboard"))
-	
+	ctrlModule.activeController.moveVectorIsCameraRelative = false
+
     if ctrlModule then
 		local moveVal = 1
 		-- Translate the move angle to be forward relative.

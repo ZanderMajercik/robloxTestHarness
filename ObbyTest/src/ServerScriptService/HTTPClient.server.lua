@@ -220,18 +220,37 @@ local function setupLocalServer(player)
     local b, serverSetupData =  pcall(decodeWrapper, setupServer)
     print("ServerSetup", serverSetupData)
     if b then
-        local jsonFilename = serverSetupData.LEVEL
-        local response = httpSrv:RequestAsync({
-            Url = HTTPSettings.baseURLAndPort .. "sendJsonDescription", -- This website helps debug HTTP requests
-            Method = "POST",
-            Headers = {
-                ["Content-Type"] = "application/json", -- When sending JSON, set this!
-            },
-            Body = httpSrv:JSONEncode({ filename = jsonFilename }),
-        })
-        data = httpSrv:JSONDecode(response["Body"])
-        -- Note: serversetupData.LEVEL is now a level name with ".json" prefix.
-        LoadObbyFunctions.createObbyFromJson(data)
+
+        -- Move all existing levels back into ServerStorage.
+        -- Assumes all level assets are in a folder as: workspace.*Level
+        for idx, child in workspace:GetChildren() do
+            local startIdx = string.find(child.Name, "Level")
+            if startIdx then
+                child.Parent = ServerStorage
+            end
+        end
+
+        if string.find(serverSetupData.LEVEL, "json") then
+            local response = httpSrv:PostAsync(HTTPSettings.baseURLAndPort .. "sendJsonDescription", httpSrv:JSONEncode({ filename = serverSetupData.LEVEL }))
+            data = httpSrv:JSONDecode(response)
+            LoadObbyFunctions.createObbyFromJson(data)
+        else
+            local level = workspace:FindFirstChild(serverSetupData.LEVEL)
+            if not level then
+                -- Level is not loaded instead load it from ServerStorage.
+                level = ServerStorage:FindFirstChild(serverSetupData.LEVEL)
+                if not level then
+                    local errorMsg = {
+                        error = "Level \"" .. serverSetupData.LEVEL .. "\" not found in workspace or ServerStorage."
+                    }
+	                httpSrv:PostAsync(HTTPSettings.baseURLAndPort .. "reportError", httpSrv:JSONEncode(errorMsg), Enum.HttpContentType.ApplicationJson, false)
+                    return
+                end
+
+                --Move the requested level into the workspace.
+                level.Parent = workspace
+            end
+        end
 
         if serverSetupData.MODE == "LIVE" then
             --Connect functions to signal if the character is alive or dead.
@@ -248,41 +267,16 @@ local function setupLocalServer(player)
                 end)
             end)
         end
-        -- local level = workspace:FindFirstChild(serverSetupData.LEVEL)
-        -- if not level then
-        --     -- Level is not loaded instead load it from ServerStorage.
-        --     level = ServerStorage:FindFirstChild(serverSetupData.LEVEL)
-        --     -- TODO: restore
-        --     local newScript = ServerStorage:FindFirstChild("Script")
-        --     newScript.Parent = workspace
-        --     if not level then
-        --         local errorMsg = {
-        --             error = "Level \"" .. serverSetupData.LEVEL .. "\" not found in workspace or ServerStorage."
-        --         }
-	    --         httpSrv:PostAsync(HTTPSettings.baseURLAndPort .. "error", httpSrv:JSONEncode(errorMsg), Enum.HttpContentType.ApplicationJson, false)
-        --         return
-        --     end
-        --     --Move all existing levels back into ServerStorage.
-        --     for idx, child in workspace:GetChildren() do
-        --         local startIdx = string.find(child.Name, "Level")
-        --         if startIdx then
-        --             child.Parent = ServerStorage
-        --         end
-        --     end
-        --     --Move the requested level into the workspace.
-        --     level.Parent = workspace
-        -- end
-        -- TODO: simply don't call this if we don't want to setup
-        -- agent control mode on the client.
-        msgRe:FireClient(player, serverSetupData)
+
+        if serverSetupData.MODE ~= "NO_AGENT" then
+            --Trigger the client to configure PLAYBACK or LIVE modes.
+            msgRe:FireClient(player, serverSetupData)
+        end
     end
 
 
 end
 
---re.OnServerEvent:Connect(forwardPostObservations)
-
--- TODO: restore
 --The event that will trigger the http server pinging
 game.Players.PlayerAdded:Connect(setupLocalServer)
 

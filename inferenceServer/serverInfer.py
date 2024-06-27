@@ -29,11 +29,12 @@ torch.manual_seed(0)
 
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument('--ckpt-path', type=str, required=True)
+arg_parser.add_argument('--level', type=str, default="SimpleLevel", help="Load a pre-defined level on the server or a JSON level description.")
 arg_parser.add_argument('--record-log', type=str)
 arg_parser.add_argument('--replay-trajectories', type=str, help="JSON file of trajectories to replay.")
 arg_parser.add_argument('--key-control', action='store_true', help="If true, control actions with the keyboard.")
 arg_parser.add_argument('--no-level-obs', action='store_true')
-arg_parser.add_argument('--no-control', action='store_true')
+arg_parser.add_argument('--no-agent', action='store_true')
 
 
 arg_parser.add_argument('--num-channels', type=int, default=256)
@@ -227,8 +228,8 @@ def xyzToPolar(v):
     return[r, theta, phi]
 
 
-# We ignore rotation for the moment.
-# The agent shouldn't need it for this challenge.
+# Roblox doesn't track character rotation, 
+# so we ignore it.
 actionJson = {
     "moveAmount" : 0,
     "moveAngle" : 0,
@@ -279,7 +280,6 @@ def sendAction():
     global trajectoryStartTime
 
     # Debugging.
-    # TODO: restore
     #print("Observations")
     #for o in obs:
     #    print(o)
@@ -338,11 +338,34 @@ def sendAction():
 
     return json.dumps(a)
 
+def debugRecordTime(observationTime):
+    global timings
+    global timeIdx
+    global hasLogged
+    global timingFrames
+
+    start = time.time()
+    end = time.time()
+    if timeIdx < timingFrames:
+        obsTime = observationTime + 60 * 60 * 8
+        recTime = time.time()
+        timings[timeIdx] = { "timingDiff" : recTime - obsTime, "jsonTime" : end - start }
+        timeIdx += 1
+    elif not hasLogged:
+        with open("timinglogLimit.txt", "a") as f:
+            f.write(str(timings))
+        print("wrote file")
+        hasLogged = True
+    else:
+        print("done")
+
+    print("Sent Time:", obsTime, "Rec Time:", recTime, "Difference:", recTime - obsTime)
 
 @app.route("/sendJsonDescription", methods=['POST'])
 def sendJsonDescription():
+    data = request.get_json()
     jsonStr = ""
-    with open("simpleLevel.json", "r") as f:
+    with open(data["filename"], "r") as f:
         jsonStr = f.read()
     return jsonStr
 
@@ -360,65 +383,29 @@ def receiveObservations():
 
     # Record the time.
     actionJson["obsTime"] = data["obsTime"]
-    # Timing
-    # global timings
-    # global timeIdx
-    # global hasLogged
-    # global timingFrames
 
-    # start = time.time()
-    # end = time.time()
-    # if timeIdx < timingFrames:
-    #     obsTime = data["obsTime"] + 60 * 60 * 8
-    #     recTime = time.time()
-    #     timings[timeIdx] = { "timingDiff" : recTime - obsTime, "jsonTime" : end - start }
-    #     timeIdx += 1
-    # elif not hasLogged:
-    #     with open("timinglogLimit.txt", "a") as f:
-    #         f.write(str(timings))
-    #     print("wrote file")
-    #     hasLogged = True
-    # else:
-    #     print("done")
-    # Update the observation tensors.
+    #Timing
+    #debugRecordTime(data["obsTime"])
 
-    #for idx, ob in enumerate(data["lidar"]):
-    #    print(idx, ob)
-    #for key in data.keys():
-    #    print(key, ":", data[key])
-
-    #print("Sent Time:", obsTime, "Rec Time:", recTime, "Difference:", recTime - obsTime)
-
-    pos = data["playerPos"]
-    # Update agent observations
     # Agent position, not polar.
+    pos = data["playerPos"]
     for i in range(9):
         if i < 3:
             sim.agent_txfm_obs[..., i] = pos[i] / MADRONA_TO_ROBLOX_SCALE
         elif i < 9:
             sim.agent_txfm_obs[..., i] = data["roomAABB"][(i - 3) // 3][i % 3] / MADRONA_TO_ROBLOX_SCALE
     sim.agent_txfm_obs[..., :3] -= (sim.agent_txfm_obs[..., 3:6] + sim.agent_txfm_obs[..., 6:9]) * 0.5
-    # Theta
-    sim.agent_txfm_obs[..., 9] = 0
-
-    #print(sim.agent_txfm_obs)
+    sim.agent_txfm_obs[..., 9] = 0 #theta, always zero because we don't track rotation.
 
     # Agent relative exit vector, polar.
-    # Note we are correctly discarding agent rotation
-    # which hopefully the network is robust to.
     for i in range(3):
         sim.agent_exit_obs[..., i] = data["goalPos"][i] / MADRONA_TO_ROBLOX_SCALE
     sim.agent_exit_obs -= torch.tensor(data["playerPos"]) / MADRONA_TO_ROBLOX_SCALE
-    sim.agent_exit_obs[..., 2] = 0 #
-    #print("pre XYZ", sim.agent_exit_obs)
+    sim.agent_exit_obs[..., 2] = 0
     for i, x in enumerate(xyzToPolar(sim.agent_exit_obs.squeeze().tolist())):
         sim.agent_exit_obs[..., i] = x
 
-    #sim.entity_physics_state_obs = torch.zeros([1, 9, 12])
-
     # Update physics state and entity type observations.
-    # Lava is type 5
-    #print("NumLava:", len(data["lava"]))
     for idx, lava in enumerate(data["lava"]):
         positionPolar = xyzToPolar([x - y for x, y in zip(lava[:3], pos)])
         # Physics state update
@@ -441,11 +428,9 @@ def receiveObservations():
     if not data["alive"]:
         # Don't execute an action.
         sim.steps_remaining[...] = 200
-        #print("Dead")
         return json.dumps(actionJson)
-    #print(sim.obsString())
 
-    # Translate lidar observations.
+    # Lidar observations.
     #for idx, ob in enumerate(data["lidar"]):
     #    sim.lidar_depth[0, idx, 0] = float(ob[0])
     #    # Walls have type 9. In this sort of challenge, they are the only thing ever hit and they are always hit.
@@ -454,11 +439,10 @@ def receiveObservations():
     return sendAction()
 
 serverConfigJson = {
-    "LEVEL" : "simpleLevel.json",
-    "MODE" : "LIVE" if not trajectories else "PLAYBACK",
+    "LEVEL" : args.level,
+    "MODE" : "NO_AGENT" if args.no_agent else ("LIVE" if not trajectories else "PLAYBACK"),
     "msgType" : "Config"
 }
-
 
 NUM_TRIALS = 10
 
@@ -489,8 +473,8 @@ def setupServer():
     totalSuccesses = 0
     return json.dumps(serverConfigJson)
 
-@app.route("/error", methods=['POST'])
-def error():
+@app.route("/reportError", methods=['POST'])
+def reportError():
     errorMsg= request.get_json()
     print("ROBLOX ERROR:", errorMsg["error"])
     return "Received"
@@ -509,7 +493,6 @@ def sendTrajectory():
     end = len(trajectories) if current_trajectory + 1 == len(trajectory_start_indices) else trajectory_start_indices[current_trajectory + 1]
     print("Start:", start, "End:", end)
     trajectory = [trajectories[i] for i in range(start, end)]
-    #print(trajectory)
 
     # Modify the trajectorys to include position and action
     def getRobloxWSPositionFromTrajectoryStep(t):
