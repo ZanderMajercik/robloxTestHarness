@@ -26,7 +26,7 @@ local totalSend = 0
 
 local zUpFrame = CFrame.fromMatrix(
 	Vector3.new(0,0,0),
-	Vector3.new(-1, 0, 0),
+	Vector3.new(1, 0, 0), -- TODO: restore
 	Vector3.new(0, 0, 1),
 	Vector3.new(0, 1, 0)
 )
@@ -82,6 +82,7 @@ end
 local function getAABB()
 	local pMin = Vector3.new(100,100,100)
 	local pMax = Vector3.new(-100,-100,-100)
+    --TODO: should no longer need this tag.
 	for i, wall in CollectionService:GetTagged("Bounds") do
         if wall:IsDescendantOf(workspace) then
             local pos = convertToZUp(wall.CFrame.Position)
@@ -175,10 +176,8 @@ serverFunctionTable["postObservations"] = function(player, delta)
         return
     end
     print(_G)
-    
-    -- TODO: restore
-    httpDelta = secondsPerHTTPRequest 
-    --HTTPSettings.secondsPerHTTPRequest
+
+    httpDelta = HTTPSettings.secondsPerHTTPRequest
     totalSend += 1
 	local response = httpSrv:PostAsync(HTTPSettings.baseURLAndPort .. "sendObservations", httpSrv:JSONEncode(obs), Enum.HttpContentType.ApplicationJson, false)
     --DebugHelpers:print("TOTAL SEND (POST): ", totalSend, time(), delta)
@@ -235,6 +234,9 @@ local function setupLocalServer(player)
         if not level then
             -- Level is not loaded instead load it from ServerStorage.
             level = ServerStorage:FindFirstChild(serverSetupData.LEVEL)
+            -- TODO: restore
+            local newScript = ServerStorage:FindFirstChild("Script")
+            newScript.Parent = workspace
             if not level then
                 local errorMsg = {
                     error = "Level \"" .. serverSetupData.LEVEL .. "\" not found in workspace or ServerStorage."
@@ -252,13 +254,17 @@ local function setupLocalServer(player)
             --Move the requested level into the workspace.
             level.Parent = workspace
         end
+        -- TODO: simply don't call this if we don't want to setup
+        -- agent control mode on the client.
         msgRe:FireClient(player, serverSetupData)
     end
 end
 
 --re.OnServerEvent:Connect(forwardPostObservations)
+
+-- TODO: restore
 --The event that will trigger the http server pinging
-game.Players.PlayerAdded:Connect(setupLocalServer)
+--game.Players.PlayerAdded:Connect(setupLocalServer)
 
 --TODO: set this based on what the server first returns.
 --game.Players.PlayerAdded:Connect(getTrajectory)
