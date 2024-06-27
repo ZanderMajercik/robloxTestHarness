@@ -6,10 +6,12 @@ local CHECKPOINT_COLOR = Color3.new(0,0,1)
 
 -- Does not take "self" as a parameter so that
 -- it can be called with TagFunctions["functionName"](block) syntax
-function TagFunctions.KillBlock(block)
+function TagFunctions.KillBlock(block, overrideColor)
 
-    -- Set block color. For now, this is cosmetic, the agent doesn't see it.
-    block.Color = KILLBLOCK_COLOR
+    if overrideColor then
+        -- Set block color. For now, this is cosmetic, the agent doesn't see it.
+        block.Color = KILLBLOCK_COLOR
+    end
 
 	block.Touched:connect(function(hit)
 		if hit and hit.Parent and (hit.Parent:FindFirstChild("Humanoid") or hit.Parent:FindFirstChild("NPCHumanoid")) then
@@ -42,8 +44,10 @@ function TagFunctions.KillBlock(block)
 end
 
 local trajectorySuccessEvent = rs:FindFirstChild("SuccessfulTrajectory")
-function TagFunctions.Checkpoint(spawnPart)
-    spawnPart.Color = CHECKPOINT_COLOR
+function TagFunctions.Checkpoint(spawnPart, overrideColor)
+    if overrideColor then
+        spawnPart.Color = CHECKPOINT_COLOR
+    end
     --Report a succcessful trajectory and trigger character death.
 	spawnPart.Touched:connect(function(hit)
         if hit and hit.Parent and hit.Parent:FindFirstChild("Humanoid") then

@@ -26,7 +26,7 @@ local function createBlockPart(blockPartName, blockPartInfo)
     for idx, t in blockPartInfo["tags"] do
         CollectionService:AddTag(part, t)
         if t == "KillBlock" then
-            TagFunctions[t](part)
+            TagFunctions[t](part, true)
         elseif t == "Conveyor" then
             
         end
