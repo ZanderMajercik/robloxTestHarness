@@ -279,6 +279,7 @@ def sendAction():
     global trajectoryStartTime
 
     # Debugging.
+    # TODO: restore
     #print("Observations")
     #for o in obs:
     #    print(o)
@@ -454,8 +455,7 @@ def receiveObservations():
 
 serverConfigJson = {
     "LEVEL" : "simpleLevel.json",
-    # TODO: connect to --no-control arg.
-    "MODE" : "NO_AGENT", #"LIVE" if not trajectories else "PLAYBACK",
+    "MODE" : "LIVE" if not trajectories else "PLAYBACK",
     "msgType" : "Config"
 }
 

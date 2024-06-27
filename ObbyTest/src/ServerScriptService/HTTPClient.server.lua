@@ -26,7 +26,7 @@ local totalSend = 0
 
 local zUpFrame = CFrame.fromMatrix(
 	Vector3.new(0,0,0),
-	Vector3.new(1, 0, 0), -- TODO: restore
+	Vector3.new(-1, 0, 0),
 	Vector3.new(0, 0, 1),
 	Vector3.new(0, 1, 0)
 )
@@ -213,6 +213,9 @@ end)
 local LoadObbyFunctions = require(ServerStorage.LoadObbyFunctions)
 local function setupLocalServer(player)
 
+    isAlive = true
+
+
     local setupServer = httpSrv:GetAsync(HTTPSettings.baseURLAndPort .. "setupServer")
     local b, serverSetupData =  pcall(decodeWrapper, setupServer)
     print("ServerSetup", serverSetupData)
@@ -229,6 +232,22 @@ local function setupLocalServer(player)
         data = httpSrv:JSONDecode(response["Body"])
         -- Note: serversetupData.LEVEL is now a level name with ".json" prefix.
         LoadObbyFunctions.createObbyFromJson(data)
+
+        if serverSetupData.MODE == "LIVE" then
+            --Connect functions to signal if the character is alive or dead.
+            player.CharacterAdded:Connect(function(character)
+                isAlive = true
+                character.Humanoid.Died:Connect(function()
+                    --Safe because the character only dies once even if a Killblock
+                    --or the ending checkpoint is hit multiple times.
+                    isAlive = false
+                    httpSrv:PostAsync(HTTPSettings.baseURLAndPort .. "reportEpisode", httpSrv:JSONEncode(episode))
+                    episode.success = false
+                    episode.observations = {}
+                    player:LoadCharacter()
+                end)
+            end)
+        end
         -- local level = workspace:FindFirstChild(serverSetupData.LEVEL)
         -- if not level then
         --     -- Level is not loaded instead load it from ServerStorage.
@@ -255,27 +274,15 @@ local function setupLocalServer(player)
         -- end
         -- TODO: simply don't call this if we don't want to setup
         -- agent control mode on the client.
-        -- TODO: restore
-        --msgRe:FireClient(player, serverSetupData)
+        msgRe:FireClient(player, serverSetupData)
     end
 
-    --Connect functions to signal if the character is alive or dead.
-    player.CharacterAdded:Connect(function(character)
-        isAlive = true
-        character.Humanoid.Died:Connect(function()
-            --Safe because the character only dies once even if a Killblock
-            --or the ending checkpoint is hit multiple times.
-            isAlive = false
-            httpSrv:PostAsync(HTTPSettings.baseURLAndPort .. "reportEpisode", httpSrv:JSONEncode(episode))
-            episode.success = false
-            episode.observations = {}
-            player:LoadCharacter()
-        end)
-    end)
+
 end
 
 --re.OnServerEvent:Connect(forwardPostObservations)
 
+-- TODO: restore
 --The event that will trigger the http server pinging
 game.Players.PlayerAdded:Connect(setupLocalServer)
 

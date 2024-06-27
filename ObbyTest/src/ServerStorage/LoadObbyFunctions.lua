@@ -23,7 +23,7 @@ local function createBlockPart(blockPartName, blockPartInfo)
         -- Associate the touched event with the associate tag function 
         -- (if there is one) and set the color for visualization.
         if TagFunctions[t] then
-            TagFunctions[t](part)
+            TagFunctions[t](part, true)
         end
     end
     -- NOTE: The JSON files store (X, Y, Z). The vertical axis in Roblox is the Y-axis.
