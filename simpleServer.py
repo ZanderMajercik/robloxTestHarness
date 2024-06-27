@@ -1,7 +1,7 @@
 import keyboard
 import time
 from flask import Flask
-from flask import request
+from flask import request, jsonify
 import json
 from multiprocessing import Process, Value
 
@@ -90,4 +90,9 @@ def sendKeyState():
 #    if keyboard.read_key() == "v":
 #        break
 
-
+@app.route("/get_obby_json", methods=['GET', 'POST'])
+def get_obby_json():
+    data = request.get_json()
+    filename = data.get('filename')
+    obby_json = json.load(open(f'src/server/json/{filename}'))
+    return jsonify(obby_json)
