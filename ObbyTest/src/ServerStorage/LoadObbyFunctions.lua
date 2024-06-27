@@ -14,8 +14,12 @@ local function createBlockPart(blockPartName, blockPartInfo)
         part.Color = Color3.new(0, 1, 0)
     elseif blockPartInfo["tags"][1] == "KillBlock" then
         part.Color = Color3.new(1, 0, 0)
+    elseif blockPartInfo["tags"][1] == "Conveyor" then
+        part.Color = Color3.new(0.5, 0, 0.5)
     elseif blockPartInfo["tags"][1] == "Goal" then
         part.Color = Color3.new(0,0,1)
+    elseif blockPartInfo["tags"][1] == "Checkpoint" then
+        part.Color = Color3.new(0, 0.5, 0.5)
     else
         part.Color = Color3.new(0.5, 0.5, 0.5)
     end
@@ -23,12 +27,14 @@ local function createBlockPart(blockPartName, blockPartInfo)
         CollectionService:AddTag(part, t)
         if t == "KillBlock" then
             TagFunctions[t](part)
+        elseif t == "Conveyor" then
+            
         end
     end
     part.Parent = workspace -- Put the part into the Workspace
 
     -- NOTE: The JSON files store (X, Y, Z). The vertical axis in Roblox is the Y-axis.
-    part.Position = Vector3.new(blockPartInfo["position"][1], -blockPartInfo["position"][3], blockPartInfo["position"][2])
+    part.Position = Vector3.new(blockPartInfo["position"][1], blockPartInfo["position"][3], blockPartInfo["position"][2])
     part.Size = Vector3.new(blockPartInfo["size"][1], blockPartInfo["size"][3], blockPartInfo["size"][2])
 end
 
