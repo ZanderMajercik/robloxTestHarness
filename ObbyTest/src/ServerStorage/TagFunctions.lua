@@ -1,7 +1,16 @@
+local rs = game:GetService("ReplicatedStorage")
 local TagFunctions = {}
 
+local KILLBLOCK_COLOR = Color3.new(1,0,0)
+local CHECKPOINT_COLOR = Color3.new(0,0,1)
+
+-- Does not take "self" as a parameter so that
+-- it can be called with TagFunctions["functionName"](block) syntax
 function TagFunctions.KillBlock(block)
-    print("Block", block)
+
+    -- Set block color. For now, this is cosmetic, the agent doesn't see it.
+    block.Color = KILLBLOCK_COLOR
+
 	block.Touched:connect(function(hit)
 		if hit and hit.Parent and (hit.Parent:FindFirstChild("Humanoid") or hit.Parent:FindFirstChild("NPCHumanoid")) then
 			if hit.Parent:FindFirstChild("Humanoid") then
@@ -29,6 +38,21 @@ function TagFunctions.KillBlock(block)
 				hit.Parent.NPCHumanoid.Health = 0
 			end
 		end
+    end)
+end
+
+local trajectorySuccessEvent = rs:FindFirstChild("SuccessfulTrajectory")
+function TagFunctions.Checkpoint(spawnPart)
+    spawnPart.Color = CHECKPOINT_COLOR
+    --Report a succcessful trajectory and trigger character death.
+	spawnPart.Touched:connect(function(hit)
+        if hit and hit.Parent and hit.Parent:FindFirstChild("Humanoid") then
+	    	local player = game.Players:GetPlayerFromCharacter(hit.Parent)
+
+	    	-- Report the successful trajectory
+	    	trajectorySuccessEvent:Fire()
+	    	hit.Parent.Humanoid.Health = 0
+	    end
     end)
 end
 

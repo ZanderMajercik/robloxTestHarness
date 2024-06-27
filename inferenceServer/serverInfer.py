@@ -33,9 +33,13 @@ arg_parser.add_argument('--record-log', type=str)
 arg_parser.add_argument('--replay-trajectories', type=str, help="JSON file of trajectories to replay.")
 arg_parser.add_argument('--key-control', action='store_true', help="If true, control actions with the keyboard.")
 arg_parser.add_argument('--no-level-obs', action='store_true')
+arg_parser.add_argument('--no-control', action='store_true')
+
+
 arg_parser.add_argument('--num-channels', type=int, default=256)
 arg_parser.add_argument('--separate-value', action='store_true')
 arg_parser.add_argument('--fp16', action='store_true')
+
 
 args = arg_parser.parse_args()
 
@@ -449,8 +453,9 @@ def receiveObservations():
     return sendAction()
 
 serverConfigJson = {
-    "LEVEL" : "SimpleLevel",
-    "MODE" : "LIVE" if not trajectories else "PLAYBACK",
+    "LEVEL" : "simpleLevel.json",
+    # TODO: connect to --no-control arg.
+    "MODE" : "NO_AGENT", #"LIVE" if not trajectories else "PLAYBACK",
     "msgType" : "Config"
 }
 

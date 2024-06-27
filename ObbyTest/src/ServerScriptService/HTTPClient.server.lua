@@ -18,7 +18,7 @@ end
 
 -- Helpful debugging functions.
 local DebugHelpers = require(rs.DebugHelpers)
-local HTTPSettings = require(rs.HTTPSettings)
+local HTTPSettings = require(ServerStorage.HTTPSettings)
 
 local frameCounter = 0
 local MAX_FRAMES = 15
@@ -210,7 +210,54 @@ successfulTrajectoryEvent.Event:Connect(function()
 end)
 
 
+local LoadObbyFunctions = require(ServerStorage.LoadObbyFunctions)
 local function setupLocalServer(player)
+
+    local setupServer = httpSrv:GetAsync(HTTPSettings.baseURLAndPort .. "setupServer")
+    local b, serverSetupData =  pcall(decodeWrapper, setupServer)
+    print("ServerSetup", serverSetupData)
+    if b then
+        local jsonFilename = serverSetupData.LEVEL
+        local response = httpSrv:RequestAsync({
+            Url = HTTPSettings.baseURLAndPort .. "sendJsonDescription", -- This website helps debug HTTP requests
+            Method = "POST",
+            Headers = {
+                ["Content-Type"] = "application/json", -- When sending JSON, set this!
+            },
+            Body = httpSrv:JSONEncode({ filename = jsonFilename }),
+        })
+        data = httpSrv:JSONDecode(response["Body"])
+        -- Note: serversetupData.LEVEL is now a level name with ".json" prefix.
+        LoadObbyFunctions.createObbyFromJson(data)
+        -- local level = workspace:FindFirstChild(serverSetupData.LEVEL)
+        -- if not level then
+        --     -- Level is not loaded instead load it from ServerStorage.
+        --     level = ServerStorage:FindFirstChild(serverSetupData.LEVEL)
+        --     -- TODO: restore
+        --     local newScript = ServerStorage:FindFirstChild("Script")
+        --     newScript.Parent = workspace
+        --     if not level then
+        --         local errorMsg = {
+        --             error = "Level \"" .. serverSetupData.LEVEL .. "\" not found in workspace or ServerStorage."
+        --         }
+	    --         httpSrv:PostAsync(HTTPSettings.baseURLAndPort .. "error", httpSrv:JSONEncode(errorMsg), Enum.HttpContentType.ApplicationJson, false)
+        --         return
+        --     end
+        --     --Move all existing levels back into ServerStorage.
+        --     for idx, child in workspace:GetChildren() do
+        --         local startIdx = string.find(child.Name, "Level")
+        --         if startIdx then
+        --             child.Parent = ServerStorage
+        --         end
+        --     end
+        --     --Move the requested level into the workspace.
+        --     level.Parent = workspace
+        -- end
+        -- TODO: simply don't call this if we don't want to setup
+        -- agent control mode on the client.
+        -- TODO: restore
+        --msgRe:FireClient(player, serverSetupData)
+    end
 
     --Connect functions to signal if the character is alive or dead.
     player.CharacterAdded:Connect(function(character)
@@ -218,53 +265,19 @@ local function setupLocalServer(player)
         character.Humanoid.Died:Connect(function()
             --Safe because the character only dies once even if a Killblock
             --or the ending checkpoint is hit multiple times.
-			isAlive = false
+            isAlive = false
             httpSrv:PostAsync(HTTPSettings.baseURLAndPort .. "reportEpisode", httpSrv:JSONEncode(episode))
             episode.success = false
             episode.observations = {}
             player:LoadCharacter()
-		end)
+        end)
     end)
-
-    local setupServer = httpSrv:GetAsync(HTTPSettings.baseURLAndPort .. "setupServer")
-    local b, serverSetupData =  pcall(decodeWrapper, setupServer)
-    print(serverSetupData)
-    if b then
-        local level = workspace:FindFirstChild(serverSetupData.LEVEL)
-        if not level then
-            -- Level is not loaded instead load it from ServerStorage.
-            level = ServerStorage:FindFirstChild(serverSetupData.LEVEL)
-            -- TODO: restore
-            local newScript = ServerStorage:FindFirstChild("Script")
-            newScript.Parent = workspace
-            if not level then
-                local errorMsg = {
-                    error = "Level \"" .. serverSetupData.LEVEL .. "\" not found in workspace or ServerStorage."
-                }
-	            httpSrv:PostAsync(HTTPSettings.baseURLAndPort .. "error", httpSrv:JSONEncode(errorMsg), Enum.HttpContentType.ApplicationJson, false)
-                return
-            end
-            --Move all existing levels back into ServerStorage.
-            for idx, child in workspace:GetChildren() do
-                local startIdx = string.find(child.Name, "Level")
-                if startIdx then
-                    child.Parent = ServerStorage
-                end
-            end
-            --Move the requested level into the workspace.
-            level.Parent = workspace
-        end
-        -- TODO: simply don't call this if we don't want to setup
-        -- agent control mode on the client.
-        msgRe:FireClient(player, serverSetupData)
-    end
 end
 
 --re.OnServerEvent:Connect(forwardPostObservations)
 
--- TODO: restore
 --The event that will trigger the http server pinging
---game.Players.PlayerAdded:Connect(setupLocalServer)
+game.Players.PlayerAdded:Connect(setupLocalServer)
 
 --TODO: set this based on what the server first returns.
 --game.Players.PlayerAdded:Connect(getTrajectory)
