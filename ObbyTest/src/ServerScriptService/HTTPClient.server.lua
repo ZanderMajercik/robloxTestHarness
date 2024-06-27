@@ -215,7 +215,6 @@ local function setupLocalServer(player)
 
     isAlive = true
 
-
     local setupServer = httpSrv:GetAsync(HTTPSettings.baseURLAndPort .. "setupServer")
     local b, serverSetupData =  pcall(decodeWrapper, setupServer)
     print("ServerSetup", serverSetupData)
