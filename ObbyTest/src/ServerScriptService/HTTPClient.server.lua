@@ -26,7 +26,7 @@ local totalSend = 0
 
 local zUpFrame = CFrame.fromMatrix(
 	Vector3.new(0,0,0),
-	Vector3.new(-1, 0, 0),
+	Vector3.new(1, 0, 0), -- TODO: restore
 	Vector3.new(0, 0, 1),
 	Vector3.new(0, 1, 0)
 )
@@ -82,6 +82,7 @@ end
 local function getAABB()
 	local pMin = Vector3.new(100,100,100)
 	local pMax = Vector3.new(-100,-100,-100)
+    --TODO: should no longer need this tag.
 	for i, wall in CollectionService:GetTagged("Bounds") do
         if wall:IsDescendantOf(workspace) then
             local pos = convertToZUp(wall.CFrame.Position)
@@ -260,8 +261,10 @@ local function setupLocalServer(player)
 end
 
 --re.OnServerEvent:Connect(forwardPostObservations)
+
+-- TODO: restore
 --The event that will trigger the http server pinging
-game.Players.PlayerAdded:Connect(setupLocalServer)
+--game.Players.PlayerAdded:Connect(setupLocalServer)
 
 --TODO: set this based on what the server first returns.
 --game.Players.PlayerAdded:Connect(getTrajectory)

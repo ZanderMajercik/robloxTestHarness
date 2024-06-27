@@ -39,7 +39,7 @@ arg_parser.add_argument('--fp16', action='store_true')
 
 args = arg_parser.parse_args()
 
-# Hack to  get around to_torch() conversion in
+# Hack to get around to_torch() conversion in
 # madrona_puzzle_bench scripts.
 class ToTorchWrapper:
     def __init__(self, tensor):
@@ -333,6 +333,21 @@ def sendAction():
 
     return json.dumps(a)
 
+
+@app.route("/sendJsonDescription", methods=['POST'])
+def sendJsonDescription():
+    jsonStr = ""
+    with open("simpleLevel.json", "r") as f:
+        jsonStr = f.read()
+    return jsonStr
+
+@app.route("/receiveJsonDescription", methods=['POST'])
+def receiveJsonDescription():
+    data = request.get_json()
+    print(data)
+    with open("simpleLevel.json", "w") as f:
+        f.write(json.dumps(data))
+    return "Received"
 
 @app.route("/sendObservations", methods=['POST'])
 def receiveObservations():
